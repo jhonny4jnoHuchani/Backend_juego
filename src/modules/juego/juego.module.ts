@@ -6,6 +6,7 @@ import { IAModule } from '../ia/ia.module';
 import { MisionesModule } from '../misiones/misiones.module';
 import { NivelesModule } from '../niveles/niveles.module';
 import { AuthModule } from '../auth/auth.module';
+import { RecomendacionesModule } from '../recomendaciones/recomendaciones.module';
 
 // Entidades del juego
 import { Intento } from './intentos/entities/intento.entity';
@@ -34,13 +35,14 @@ import { JuegoController } from './juego.controller';
       ProgresoUsuario,
       Insignia,
       UsuarioInsignia,
-      Mision,     
+      Mision,
       Nivel,
     ]),
     IAModule,
     MisionesModule,
     NivelesModule,
     AuthModule,
+    RecomendacionesModule,   // ← AQUÍ va, en imports
   ],
   controllers: [JuegoController],
   providers: [
@@ -49,6 +51,7 @@ import { JuegoController } from './juego.controller';
     EvaluacionesIaService,
     ProgresoService,
     InsigniasService,
+    // ← RecomendacionesModule NO va aquí
   ],
   exports: [JuegoService],
 })

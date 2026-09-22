@@ -17,6 +17,8 @@ import { ResponderMisionDto } from './dto/responder-mision.dto';
 import { OrigenIntento } from '../../common/enums/origen-intento.enum';
 import { ResultadoIntento } from '../../common/enums/resultado-intento.enum';
 
+import { RecomendacionesService } from '../recomendaciones/recomendaciones.service';
+
 @Injectable()
 export class JuegoService {
   private readonly logger = new Logger(JuegoService.name);
@@ -29,6 +31,7 @@ export class JuegoService {
     private readonly evaluacionesIaService: EvaluacionesIaService,
     private readonly progresoService: ProgresoService,
     private readonly insigniasService: InsigniasService,
+    private readonly recomendacionesService: RecomendacionesService,
   ) {}
 
   async responderMision(
@@ -149,6 +152,27 @@ export class JuegoService {
         nivelId: mision.nivel.id,
         modalidadId: mision.nivel.modalidadId,
       });
+    }
+
+        // ---------- 9.5. Marcar recomendación como completada (si aplica) ----------
+    if (
+      origen === OrigenIntento.RECOMENDACION_DOCENTE &&
+      evaluacion.resultado === ResultadoIntento.CORRECTO
+    ) {
+      const recomendacionActiva =
+        await this.recomendacionesService.buscarRecomendacionActiva(
+          usuarioId,
+          misionId,
+        );
+
+      if (recomendacionActiva) {
+        await this.recomendacionesService.marcarCompletada(
+          recomendacionActiva.id,
+        );
+        this.logger.log(
+          `✅ Recomendación ${recomendacionActiva.id} marcada como completada`,
+        );
+      }
     }
 
     // ---------- 11. Devolver respuesta ----------

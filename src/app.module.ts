@@ -11,6 +11,10 @@ import { NivelesModule } from './modules/niveles/niveles.module';
 import { MisionesModule } from './modules/misiones/misiones.module';
 import { IAModule } from './modules/ia/ia.module';
 import { JuegoModule } from './modules/juego/juego.module';
+import { BossModule } from './modules/boss/boss.module';
+import { GruposModule } from './modules/grupos/grupos.module';
+import { RecomendacionesModule } from './modules/recomendaciones/recomendaciones.module';
+import { ReportesModule } from './modules/reportes/reportes.module';
 
 @Module({
   imports: [
@@ -38,7 +42,11 @@ import { JuegoModule } from './modules/juego/juego.module';
     NivelesModule,
     MisionesModule,
     IAModule,
-    JuegoModule, 
+    JuegoModule,
+    BossModule,
+    GruposModule,
+    RecomendacionesModule,
+    ReportesModule,     
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -233,6 +233,75 @@ async function bootstrap() {
     } else {
       console.log(`   ℹ️  Ya existen ${totalInsignias} insignias\n`);
     }
+        // ============================================================
+    // 5. NIVEL BOSS (para probar el módulo Boss)
+    // ============================================================
+    const nivelesExistentesBoss = await nivelesRepo.count({
+      where: { modalidadId: modalidadMonografia.id, tipo: 'boss' },
+    });
+
+    if (nivelesExistentesBoss === 0) {
+      console.log('👹 Insertando nivel Boss de prueba...');
+
+      const nivelBoss = await nivelesRepo.save({
+        modalidadId: modalidadMonografia.id,
+        numero: 99,
+        titulo: 'BOSS FINAL: Defiende tu propuesta',
+        descripcion:
+          'Prueba de fuego. Demuestra todo lo aprendido en 15 minutos.',
+        orden: 99,
+        tipo: 'boss',
+      });
+
+      console.log(`   ✅ Nivel Boss creado (id: ${nivelBoss.id})\n`);
+
+      // ---------- MISIÓN BOSS 1 ----------
+      const misionesRepo2 = dataSource.getRepository(Mision);
+
+      await misionesRepo2.save({
+        nivelId: nivelBoss.id,
+        titulo: 'BOSS MISIÓN 1: El título perfecto',
+        enunciado:
+          'Escribe un título científico completo que incluya variable, población, lugar y tiempo. Tienes 15 minutos para todo el Boss.',
+        tipoInteraccion: 'texto_libre',
+        contenidoJson: {
+          instruccion: 'Escribe tu título científico final',
+        },
+        rubricJson: {
+          criterios: [
+            {
+              nombre: 'variable_clara',
+              descripcion: 'El título menciona una variable específica',
+              peso: 30,
+            },
+            {
+              nombre: 'poblacion_definida',
+              descripcion: 'Identifica los sujetos de estudio',
+              peso: 25,
+            },
+            {
+              nombre: 'lugar_delimitado',
+              descripcion: 'Incluye el lugar de la investigación',
+              peso: 20,
+            },
+            {
+              nombre: 'temporalidad',
+              descripcion: 'Menciona el período de tiempo',
+              peso: 25,
+            },
+          ],
+        },
+        competencia: 'formulación de título',
+        esPrincipal: true,
+        vidasIniciales: 3,
+        xpRecompensa: 500,
+        puntosInvestigacion: 100,
+      });
+
+      console.log(`   ✅ Misión Boss creada\n`);
+    } else {
+      console.log(`   ℹ️  Ya existe nivel Boss. Saltando...\n`);
+    }
 
     console.log('✅ Seed completado exitosamente');
     console.log('\n📊 Resumen:');
@@ -240,6 +309,7 @@ async function bootstrap() {
     console.log(`   - Niveles: ${await nivelesRepo.count()}`);
     console.log(`   - Misiones: ${await dataSource.getRepository(Mision).count()}`);
         console.log(`   - Insignias: ${await insigniasRepo.count()}`);
+        console.log(`   - Niveles Boss: ${await nivelesRepo.count({ where: { tipo: 'boss' } })}`);
   } catch (error) {
     console.error('❌ Error durante el seed:', error);
     process.exit(1);
