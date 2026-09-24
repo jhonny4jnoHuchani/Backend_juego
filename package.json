@@ -19,7 +19,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts"
+    "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
+    "seed:tesis": "ts-node -r tsconfig-paths/register src/database/seed-tesis.ts",
+    "seed:tesis:misiones": "ts-node -r tsconfig-paths/register src/database/seed-tesis-misiones.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -30,6 +32,7 @@
     "@nestjs/mapped-types": "^12.0.0",
     "@nestjs/passport": "^12.0.0",
     "@nestjs/platform-express": "^12.0.1",
+    "@nestjs/swagger": "^12.0.2",
     "@nestjs/typeorm": "^12.0.1",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
@@ -40,6 +43,7 @@
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1",
     "typeorm": "^1.1.1"
   },
   "devDependencies": {

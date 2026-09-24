@@ -124,15 +124,23 @@ export class InsigniasService {
     return ultimos.every((i) => i.resultado === ResultadoIntento.CORRECTO);
   }
 
+
+
   private async cumpleMundoCompletado(
     usuarioId: string,
     modalidadId: number,
   ): Promise<boolean> {
+    // Contar niveles CON misiones principales que aún tienen misiones pendientes
     const pendientes = await this.intentosRepo.manager.query(
       `
       SELECT COUNT(*) AS pendientes
       FROM niveles n
       WHERE n.modalidad_id = ?
+      AND EXISTS (
+        SELECT 1 FROM misiones m
+        WHERE m.nivel_id = n.id
+        AND m.es_principal = TRUE
+      )
       AND EXISTS (
         SELECT 1 FROM misiones m
         WHERE m.nivel_id = n.id
@@ -149,8 +157,31 @@ export class InsigniasService {
       [modalidadId, usuarioId],
     );
 
-    return Number(pendientes[0]?.pendientes ?? 0) === 0;
+    const cantidadPendientes = Number(pendientes[0]?.pendientes ?? 0);
+
+    // Solo es "Mundo completado" si:
+    // 1. Existe al menos un nivel con misiones
+    // 2. NO quedan niveles con misiones pendientes
+    const totalNivelesConMisiones = await this.intentosRepo.manager.query(
+      `
+      SELECT COUNT(*) AS total
+      FROM niveles n
+      WHERE n.modalidad_id = ?
+      AND EXISTS (
+        SELECT 1 FROM misiones m
+        WHERE m.nivel_id = n.id
+        AND m.es_principal = TRUE
+      )
+      `,
+      [modalidadId],
+    );
+
+    const total = Number(totalNivelesConMisiones[0]?.total ?? 0);
+
+    return total > 0 && cantidadPendientes === 0;
   }
+
+
 
   // ============================================================
   // OTORGAMIENTO

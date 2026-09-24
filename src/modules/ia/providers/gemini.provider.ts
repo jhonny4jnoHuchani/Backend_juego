@@ -43,7 +43,7 @@ export class GeminiProvider implements AIProvider {
     const model = this.client.getGenerativeModel({
       model: modelo,
       generationConfig: {
-        temperature: 0.3,
+        temperature: 0,
         responseMimeType: 'application/json',
       },
     });

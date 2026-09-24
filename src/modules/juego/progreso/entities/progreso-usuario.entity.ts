@@ -36,6 +36,9 @@ export class ProgresoUsuario {
   @JoinColumn({ name: 'nivel_actual_id' })
   nivelActual: any;
 
+  @Column({ name: 'tema_investigacion', type: 'text', nullable: true })
+  temaInvestigacion: string | null;
+
   @Column({ name: 'xp_total', type: 'int', unsigned: true, default: 0 })
   xpTotal: number;
 

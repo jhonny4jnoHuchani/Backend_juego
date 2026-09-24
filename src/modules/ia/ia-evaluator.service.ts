@@ -21,8 +21,16 @@ export class IAEvaluatorService {
     this.providers = [this.gemini, this.groq];
   }
 
-  async evaluar(mision: Mision, respuestaEstudiante: string): Promise<EvaluacionCompleta> {
-    const prompt = this.promptBuilder.construirPrompt(mision, respuestaEstudiante);
+  async evaluar(
+    mision: Mision,
+    respuestaEstudiante: string,
+    temaInvestigacion: string | null,
+  ): Promise<EvaluacionCompleta> {
+    const prompt = this.promptBuilder.construirPrompt(
+      mision,
+      respuestaEstudiante,
+      temaInvestigacion,
+    );
     const inicio = Date.now();
 
     for (const provider of this.providers) {
@@ -50,19 +58,19 @@ export class IAEvaluatorService {
               duracionMs,
             },
           };
-            } catch (error) {
-            const mensaje = error instanceof Error ? error.message : 'Error desconocido';
+        } catch (error) {
+          const mensaje = error instanceof Error ? error.message : 'Error desconocido';
 
+          this.logger.warn(
+            `❌ ${provider.nombre} intento ${intento} falló: ${mensaje}`,
+          );
+
+          if (intento === intentosMaximos) {
             this.logger.warn(
-                `❌ ${provider.nombre} intento ${intento} falló: ${mensaje}`,
+              `Cambiando al siguiente proveedor después de ${intentosMaximos} intentos con ${provider.nombre}`,
             );
-
-            if (intento === intentosMaximos) {
-                this.logger.warn(
-                `Cambiando al siguiente proveedor después de ${intentosMaximos} intentos con ${provider.nombre}`,
-                );
-            }
-            }
+          }
+        }
       }
     }
 
