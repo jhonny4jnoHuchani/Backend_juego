@@ -89,4 +89,120 @@ export class IAEvaluatorService {
         return 'desconocido';
     }
   }
+
+    // ============================================================
+  // GENERAR TEXTO CON ERRORES (para misiones marcar_errores)
+  // ============================================================
+  async generarTextoConErrores(
+    mision: Mision,
+    temaInvestigacion: string,
+  ): Promise<{
+    texto: string;
+    erroresEsperados: any;
+    respuestasCorrectas: any;
+  }> {
+    const prompt = this.promptBuilder.construirPromptGenerarTexto(
+      mision,
+      temaInvestigacion,
+    );
+
+    const inicio = Date.now();
+
+    for (const provider of this.providers) {
+      const intentosMaximos = 2;
+
+      for (let intento = 1; intento <= intentosMaximos; intento++) {
+        try {
+          this.logger.log(
+            `Generando texto con ${provider.nombre} (intento ${intento}/${intentosMaximos})...`,
+          );
+
+          const resultado = await provider.evaluar(prompt);
+          const duracionMs = Date.now() - inicio;
+
+          const data = resultado as any;
+
+          if (!data.texto || !data.erroresEsperados || !data.respuestasCorrectas) {
+            throw new Error('El JSON generado no tiene la estructura esperada');
+          }
+
+          this.logger.log(
+            `✅ Texto generado con ${provider.nombre} (${duracionMs}ms)`,
+          );
+
+          return {
+            texto: data.texto,
+            erroresEsperados: data.erroresEsperados,
+            respuestasCorrectas: data.respuestasCorrectas,
+          };
+        } catch (error) {
+          const mensaje = error instanceof Error ? error.message : 'Error desconocido';
+          this.logger.warn(
+            `❌ ${provider.nombre} intento ${intento} falló: ${mensaje}`,
+          );
+        }
+      }
+    }
+
+    throw new ServiceUnavailableException(
+      'No se pudo generar el texto. Intenta de nuevo en unos minutos.',
+    );
+  }
+
+  // ============================================================
+  // EVALUAR DETECCIÓN DE ERRORES
+  // ============================================================
+  async evaluarDeteccionErrores(
+    mision: Mision,
+    textoGenerado: string,
+    respuestasCorrectas: any,
+    respuestaEstudiante: string,
+  ): Promise<EvaluacionCompleta> {
+    const prompt = this.promptBuilder.construirPromptEvaluarErrores(
+      mision,
+      textoGenerado,
+      respuestasCorrectas,
+      respuestaEstudiante,
+    );
+
+    const inicio = Date.now();
+
+    for (const provider of this.providers) {
+      const intentosMaximos = 2;
+
+      for (let intento = 1; intento <= intentosMaximos; intento++) {
+        try {
+          this.logger.log(
+            `Evaluando errores con ${provider.nombre} (intento ${intento}/${intentosMaximos})...`,
+          );
+
+          const resultado = await provider.evaluar(prompt);
+          const duracionMs = Date.now() - inicio;
+
+          this.logger.log(
+            `✅ Evaluación de errores exitosa con ${provider.nombre} (${duracionMs}ms)`,
+          );
+
+          return {
+            ...resultado,
+            _meta: {
+              proveedor: provider.nombre,
+              modelo: this.obtenerModelo(provider.nombre),
+              intentosFormato: intento,
+              duracionMs,
+            },
+          };
+        } catch (error) {
+          const mensaje = error instanceof Error ? error.message : 'Error desconocido';
+          this.logger.warn(
+            `❌ ${provider.nombre} intento ${intento} falló: ${mensaje}`,
+          );
+        }
+      }
+    }
+
+    throw new ServiceUnavailableException(
+      'No se pudo evaluar la respuesta. Intenta de nuevo en unos minutos.',
+    );
+  }
 }

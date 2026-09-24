@@ -102,4 +102,139 @@ REGLAS DE PUNTUACIÓN:
 
 RESPONDE SOLO EL JSON.`;
   }
+
+  // ============================================================
+  // PROMPT PARA GENERAR TEXTO CON ERRORES
+  // ============================================================
+  construirPromptGenerarTexto(
+    mision: Mision,
+    temaInvestigacion: string,
+  ): string {
+    const contenido = mision.contenidoJson ?? {};
+    const tipoErrores = (contenido as any).tiposErrores ?? [
+      'Falta de cita (menciona "un estudio" sin autor ni año)',
+      'Generalización falsa ("todos los investigadores...")',
+      'Expresión vaga ("muchos estudios...")',
+      'Afirmación sin fuente ("la IA es muy importante...")',
+    ];
+
+    return `
+Eres un experto en metodología de investigación académica.
+
+Tu tarea es GENERAR un párrafo académico con ERRORES INTENCIONALES sobre el siguiente tema:
+
+"${temaInvestigacion}"
+
+Contexto de la misión: ${mision.titulo}
+Competencia: ${mision.competencia ?? 'general'}
+
+========================================
+REQUISITOS DEL TEXTO
+========================================
+- Debe ser un párrafo de 4-5 oraciones
+- Tema del párrafo: antecedentes o marco teórico de la investigación
+- Debe ser coherente con el tema del estudiante
+- Debe contener EXACTAMENTE 4 errores, uno de cada tipo:
+${tipoErrores.map((e: string, i: number) => `  ${i + 1}. ${e}`).join('\n')}
+
+========================================
+FORMATO DE RESPUESTA (OBLIGATORIO)
+========================================
+Responde ÚNICAMENTE con un JSON válido, sin texto antes ni después, sin bloques de código markdown, sin comentarios. Exactamente con esta estructura:
+
+{
+  "texto": "<el párrafo completo con los 4 errores>",
+  "erroresEsperados": [
+    { "fragmento": "<texto exacto que aparece en el párrafo>", "tipo": "<tipo_de_error>" }
+  ],
+  "respuestasCorrectas": {
+    "errores": [
+      {
+        "fragmento": "<texto exacto>",
+        "tipo": "<tipo_de_error>",
+        "razon_completa": "<explicación detallada de por qué es un error>",
+        "peso": 25
+      }
+    ]
+  }
+}
+
+REGLAS:
+- Los "fragmento" en erroresEsperados y respuestasCorrectas deben coincidir EXACTAMENTE con el texto del párrafo.
+- Cada error debe ser claramente identificable.
+- NO generes errores ambiguos.
+
+RESPONDE SOLO EL JSON.`;
+  }
+
+  // ============================================================
+  // PROMPT PARA EVALUAR DETECCIÓN DE ERRORES
+  // ============================================================
+  construirPromptEvaluarErrores(
+    mision: Mision,
+    textoGenerado: string,
+    respuestasCorrectas: any,
+    respuestaEstudiante: string,
+  ): string {
+    return `
+Eres un tutor académico experto en metodología de investigación científica.
+Tu rol es EVALUAR la respuesta de un estudiante universitario, NUNCA generar el trabajo por él.
+
+========================================
+CONTEXTO DE LA MISIÓN
+========================================
+Título: ${mision.titulo}
+Enunciado: ${mision.enunciado}
+Competencia evaluada: ${mision.competencia ?? 'general'}
+
+========================================
+TEXTO QUE EL ESTUDIANTE DEBÍA ANALIZAR
+========================================
+"${textoGenerado}"
+
+========================================
+ERRORES CORRECTOS (RESPUESTAS ESPERADAS)
+========================================
+${JSON.stringify(respuestasCorrectas, null, 2)}
+
+========================================
+RESPUESTA DEL ESTUDIANTE
+========================================
+"${respuestaEstudiante}"
+
+========================================
+INSTRUCCIONES DE EVALUACIÓN
+========================================
+1. Evalúa cuántos de los errores correctos logró identificar el estudiante.
+2. El estudiante NO tiene que usar las mismas palabras exactas — evalúa si su descripción corresponde al error.
+3. Sé justo: si el estudiante describe correctamente el error aunque use otras palabras, cuéntalo como detectado.
+4. CRITERIOS PROPORCIONALES: si el estudiante detecta 1 de 4 errores → 25% del peso. 2 de 4 → 50%. 3 de 4 → 75%. 4 de 4 → 100%.
+5. Da una PISTA ESPECÍFICA sobre los errores que no detectó. NO des la respuesta completa.
+
+========================================
+FORMATO DE RESPUESTA (OBLIGATORIO)
+========================================
+Responde ÚNICAMENTE con un JSON válido, sin texto antes ni después, sin bloques de código markdown, sin comentarios:
+
+{
+  "resultado": "correcto" | "parcial" | "incorrecto",
+  "puntuacion": <número entero de 0 a 100>,
+  "criterios": [
+    {
+      "nombre": "<nombre del criterio>",
+      "cumplido": true | false,
+      "comentario": "<explicación específica>"
+    }
+  ],
+  "pista": "<sugerencia concreta sobre los errores no detectados, null si correcto>",
+  "explicacion": "<explicación breve del porqué de la evaluación>"
+}
+
+REGLAS DE PUNTUACIÓN:
+- "correcto" → puntuacion >= 80
+- "parcial"  → puntuacion entre 20 y 79
+- "incorrecto" → puntuacion < 20
+
+RESPONDE SOLO EL JSON.`;
+  }
 }
