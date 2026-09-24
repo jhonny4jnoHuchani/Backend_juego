@@ -4,6 +4,7 @@ import { EvaluacionCompleta } from './interfaces/evaluacion-resultado.interface'
 import { GeminiProvider } from './providers/gemini.provider';
 import { GroqProvider } from './providers/groq.provider';
 import { PromptBuilderService } from './prompt-builder/prompt-builder.service';
+import { JsonValidatorService } from './validators/json-validator.service';
 import { Mision } from '../misiones/entities/mision.entity';
 
 @Injectable()
@@ -13,14 +14,16 @@ export class IAEvaluatorService {
 
   constructor(
     private readonly promptBuilder: PromptBuilderService,
+    private readonly validator: JsonValidatorService,
     private readonly gemini: GeminiProvider,
     private readonly groq: GroqProvider,
   ) {
-    // Orden de intentos: Gemini → Groq
-    // (Gemini internamente ya prueba primario + fallback)
     this.providers = [this.gemini, this.groq];
   }
 
+  // ============================================================
+  // EVALUAR RESPUESTA (texto_libre)
+  // ============================================================
   async evaluar(
     mision: Mision,
     respuestaEstudiante: string,
@@ -34,7 +37,7 @@ export class IAEvaluatorService {
     const inicio = Date.now();
 
     for (const provider of this.providers) {
-      const intentosMaximos = 2; // 1 intento + 1 reintento por JSON mal formado
+      const intentosMaximos = 2;
 
       for (let intento = 1; intento <= intentosMaximos; intento++) {
         try {
@@ -44,6 +47,13 @@ export class IAEvaluatorService {
 
           const resultado = await provider.evaluar(prompt);
           const duracionMs = Date.now() - inicio;
+
+          // Validar estructura de evaluación
+          if (!this.validator.validarEstructuraEvaluacion(resultado)) {
+            throw new Error(
+              `JSON de ${provider.nombre} no cumple con la estructura de evaluación`,
+            );
+          }
 
           this.logger.log(
             `✅ Evaluación exitosa con ${provider.nombre} (${duracionMs}ms)`,
@@ -60,16 +70,9 @@ export class IAEvaluatorService {
           };
         } catch (error) {
           const mensaje = error instanceof Error ? error.message : 'Error desconocido';
-
           this.logger.warn(
             `❌ ${provider.nombre} intento ${intento} falló: ${mensaje}`,
           );
-
-          if (intento === intentosMaximos) {
-            this.logger.warn(
-              `Cambiando al siguiente proveedor después de ${intentosMaximos} intentos con ${provider.nombre}`,
-            );
-          }
         }
       }
     }
@@ -79,19 +82,8 @@ export class IAEvaluatorService {
     );
   }
 
-  private obtenerModelo(proveedor: string): string {
-    switch (proveedor) {
-      case 'gemini':
-        return 'gemini-3.6-flash / 3.7-flash';
-      case 'groq':
-        return 'llama-3.1-8b-instant';
-      default:
-        return 'desconocido';
-    }
-  }
-
-    // ============================================================
-  // GENERAR TEXTO CON ERRORES (para misiones marcar_errores)
+  // ============================================================
+  // GENERAR TEXTO CON ERRORES (marcar_errores)
   // ============================================================
   async generarTextoConErrores(
     mision: Mision,
@@ -120,16 +112,18 @@ export class IAEvaluatorService {
           const resultado = await provider.evaluar(prompt);
           const duracionMs = Date.now() - inicio;
 
-          const data = resultado as any;
-
-          if (!data.texto || !data.erroresEsperados || !data.respuestasCorrectas) {
-            throw new Error('El JSON generado no tiene la estructura esperada');
+          // Validar estructura de texto generado
+          if (!this.validator.validarEstructuraTextoGenerado(resultado)) {
+            throw new Error(
+              `JSON de ${provider.nombre} no cumple con la estructura de texto generado`,
+            );
           }
 
           this.logger.log(
             `✅ Texto generado con ${provider.nombre} (${duracionMs}ms)`,
           );
 
+          const data = resultado as any;
           return {
             texto: data.texto,
             erroresEsperados: data.erroresEsperados,
@@ -179,6 +173,13 @@ export class IAEvaluatorService {
           const resultado = await provider.evaluar(prompt);
           const duracionMs = Date.now() - inicio;
 
+          // Validar estructura de evaluación
+          if (!this.validator.validarEstructuraEvaluacion(resultado)) {
+            throw new Error(
+              `JSON de ${provider.nombre} no cumple con la estructura de evaluación`,
+            );
+          }
+
           this.logger.log(
             `✅ Evaluación de errores exitosa con ${provider.nombre} (${duracionMs}ms)`,
           );
@@ -204,5 +205,19 @@ export class IAEvaluatorService {
     throw new ServiceUnavailableException(
       'No se pudo evaluar la respuesta. Intenta de nuevo en unos minutos.',
     );
+  }
+
+  // ============================================================
+  // HELPERS
+  // ============================================================
+  private obtenerModelo(proveedor: string): string {
+    switch (proveedor) {
+      case 'gemini':
+        return 'gemini-3.6-flash / 3.7-flash';
+      case 'groq':
+        return 'openai/gpt-oss-120b';
+      default:
+        return 'desconocido';
+    }
   }
 }

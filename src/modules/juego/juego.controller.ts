@@ -6,6 +6,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { UsuarioAutenticado } from '../../common/decorators/current-user.decorator';
 import { EstablecerTemaDto } from './dto/establecer-tema.dto';
 
+
 @UseGuards(JwtAuthGuard)
 @Controller('juego')
 export class JuegoController {
@@ -75,5 +76,14 @@ export class JuegoController {
       modalidadId,
       dto.temaInvestigacion,
     );
+  }
+
+    // ---------- OBTENER TEXTO GENERADO (solo marcar_errores) ----------
+  @Get('misiones/:id/texto')
+  obtenerTexto(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Param('id') misionId: string,
+  ) {
+    return this.juegoService.obtenerTextoGenerado(usuario.id, misionId);
   }
 }

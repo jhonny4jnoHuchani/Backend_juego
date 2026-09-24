@@ -2,8 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AIProvider } from '../interfaces/ai-provider.interface';
-import { EvaluacionResultado } from '../interfaces/evaluacion-resultado.interface';
-import { JsonValidatorService } from '../validators/json-validator.service';
 
 @Injectable()
 export class GeminiProvider implements AIProvider {
@@ -14,17 +12,16 @@ export class GeminiProvider implements AIProvider {
   private readonly modeloPrimario: string;
   private readonly modeloFallback: string;
 
-  constructor(
-    private readonly config: ConfigService,
-    private readonly validator: JsonValidatorService,
-  ) {
+  constructor(private readonly config: ConfigService) {
     const apiKey = this.config.get<string>('ia.geminiApiKey') ?? '';
     this.client = new GoogleGenerativeAI(apiKey);
-    this.modeloPrimario = this.config.get<string>('ia.geminiModelPrimary') ?? 'gemini-3.6-flash';
-    this.modeloFallback = this.config.get<string>('ia.geminiModelFallback') ?? 'gemini-3.7-flash';
+    this.modeloPrimario =
+      this.config.get<string>('ia.geminiModelPrimary') ?? 'gemini-3.6-flash';
+    this.modeloFallback =
+      this.config.get<string>('ia.geminiModelFallback') ?? 'gemini-3.7-flash';
   }
 
-  async evaluar(prompt: string): Promise<EvaluacionResultado> {
+  async evaluar(prompt: string): Promise<any> {
     // Intento 1: modelo primario
     try {
       return await this.ejecutar(this.modeloPrimario, prompt);
@@ -39,7 +36,7 @@ export class GeminiProvider implements AIProvider {
     return await this.ejecutar(this.modeloFallback, prompt);
   }
 
-  private async ejecutar(modelo: string, prompt: string): Promise<EvaluacionResultado> {
+  private async ejecutar(modelo: string, prompt: string): Promise<any> {
     const model = this.client.getGenerativeModel({
       model: modelo,
       generationConfig: {
@@ -59,16 +56,50 @@ export class GeminiProvider implements AIProvider {
 
     const texto = respuesta.response.text();
 
-    const json = this.validator.extraerJson(texto);
+    // Solo extraemos el JSON. La validación de estructura la hace el IAEvaluatorService.
+    const json = this.extractJson(texto);
 
     if (!json) {
       throw new Error('Gemini devolvió un JSON inválido');
     }
 
-    if (!this.validator.validarEstructura(json)) {
-      throw new Error('JSON de Gemini no cumple con la estructura esperada');
+    return json;
+  }
+
+  /**
+   * Extrae el primer bloque JSON válido de un string.
+   */
+  private extractJson(texto: string): any | null {
+    if (!texto) return null;
+
+    // 1. Intento directo
+    try {
+      return JSON.parse(texto.trim());
+    } catch {
+      // Continuar
     }
 
-    return json;
+    // 2. Buscar bloque entre ```json ... ```
+    const bloqueMarkdown = texto.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (bloqueMarkdown) {
+      try {
+        return JSON.parse(bloqueMarkdown[1].trim());
+      } catch {
+        // Continuar
+      }
+    }
+
+    // 3. Buscar el primer { ... último }
+    const primerLlave = texto.indexOf('{');
+    const ultimaLlave = texto.lastIndexOf('}');
+    if (primerLlave !== -1 && ultimaLlave > primerLlave) {
+      try {
+        return JSON.parse(texto.substring(primerLlave, ultimaLlave + 1));
+      } catch {
+        // Continuar
+      }
+    }
+
+    return null;
   }
 }

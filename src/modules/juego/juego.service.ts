@@ -16,6 +16,7 @@ import { InsigniasService } from './insignias/insignias.service';
 import { ResponderMisionDto } from './dto/responder-mision.dto';
 import { OrigenIntento } from '../../common/enums/origen-intento.enum';
 import { ResultadoIntento } from '../../common/enums/resultado-intento.enum';
+import { TextosGeneradosService } from './textos-generados/textos-generados.service';
 
 import { RecomendacionesService } from '../recomendaciones/recomendaciones.service';
 
@@ -32,6 +33,7 @@ export class JuegoService {
     private readonly progresoService: ProgresoService,
     private readonly insigniasService: InsigniasService,
     private readonly recomendacionesService: RecomendacionesService,
+    private readonly textosGeneradosService: TextosGeneradosService,
   ) {}
 
   async responderMision(
@@ -84,11 +86,37 @@ export class JuegoService {
       mision.nivel.modalidadId,
     );
 
-    const evaluacion = await this.iaEvaluator.evaluar(
-      mision,
-      dto.respuesta,
-      progreso.temaInvestigacion,
-    );
+    let evaluacion;
+
+    if (mision.tipoInteraccion === 'marcar_errores') {
+      // Misión de detección de errores → usar el texto generado
+      const textoGenerado =
+        await this.textosGeneradosService.obtenerParaEvaluacion(
+          usuarioId,
+          misionId,
+        );
+
+      if (!textoGenerado) {
+        throw new ForbiddenException(
+          'Debes abrir la misión primero para generar el texto antes de responder.',
+        );
+      }
+
+      evaluacion = await this.iaEvaluator.evaluarDeteccionErrores(
+        mision,
+        textoGenerado.textoGenerado,
+        textoGenerado.respuestasCorrectas,
+        dto.respuesta,
+      );
+    } else {
+      // Misión de texto libre → evaluación normal
+      evaluacion = await this.iaEvaluator.evaluar(
+        mision,
+        dto.respuesta,
+        progreso.temaInvestigacion,
+      );
+    }
+
     // ---------- 5. Calcular vidas restantes DESPUÉS del intento ----------
     let vidasRestantesDespues = vidasRestantesAntes;
     if (evaluacion.resultado === ResultadoIntento.INCORRECTO) {
@@ -555,5 +583,12 @@ export class JuegoService {
       modalidadId,
       temaInvestigacion: progreso.temaInvestigacion,
     };
+  }
+
+   // ============================================================
+  // OBTENER TEXTO GENERADO (para misiones marcar_errores)
+  // ============================================================
+  async obtenerTextoGenerado(usuarioId: string, misionId: string) {
+    return this.textosGeneradosService.obtenerOCrear(usuarioId, misionId);
   }
 }

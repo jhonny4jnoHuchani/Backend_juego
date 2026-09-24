@@ -42,15 +42,14 @@ export class JsonValidatorService {
   }
 
   /**
-   * Valida que el JSON tenga la estructura correcta del EvaluacionResultado.
+   * Valida que el JSON tenga la estructura correcta de una EVALUACIÓN
+   * (resultado, puntuacion, criterios, pista, explicacion).
    */
-  validarEstructura(json: any): json is EvaluacionResultado {
+  validarEstructuraEvaluacion(json: any): json is EvaluacionResultado {
     if (!json || typeof json !== 'object') return false;
 
     // Campos obligatorios
-    if (
-      !['correcto', 'parcial', 'incorrecto'].includes(json.resultado)
-    ) {
+    if (!['correcto', 'parcial', 'incorrecto'].includes(json.resultado)) {
       return false;
     }
 
@@ -81,6 +80,38 @@ export class JsonValidatorService {
     }
 
     if (typeof json.explicacion !== 'string') {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Valida que el JSON tenga la estructura correcta de un TEXTO GENERADO
+   * (texto, erroresEsperados, respuestasCorrectas).
+   */
+  validarEstructuraTextoGenerado(json: any): boolean {
+    if (!json || typeof json !== 'object') return false;
+
+    if (typeof json.texto !== 'string' || json.texto.length < 10) {
+      return false;
+    }
+
+    if (!Array.isArray(json.erroresEsperados) || json.erroresEsperados.length === 0) {
+      return false;
+    }
+
+    for (const error of json.erroresEsperados) {
+      if (typeof error.fragmento !== 'string' || typeof error.tipo !== 'string') {
+        return false;
+      }
+    }
+
+    if (
+      !json.respuestasCorrectas ||
+      typeof json.respuestasCorrectas !== 'object' ||
+      !Array.isArray(json.respuestasCorrectas.errores)
+    ) {
       return false;
     }
 
