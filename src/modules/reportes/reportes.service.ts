@@ -129,4 +129,168 @@ export class ReportesService {
       totalCompetencias: competencias.length,
     };
   }
+
+    // ============================================================
+  // RANKING DE ESTUDIANTES POR XP
+  // ============================================================
+  async rankingDelGrupo(docenteId: string, grupoId: string) {
+    // Validar que el grupo pertenece al docente
+    const grupo = await this.gruposRepo.findOne({
+      where: { id: grupoId, docenteId },
+    });
+
+    if (!grupo) {
+      throw new NotFoundException('Grupo no encontrado o no te pertenece');
+    }
+
+    const ranking = await this.grupoEstudiantesRepo.manager.query(
+      `
+      SELECT
+        u.id,
+        u.nombre,
+        u.email,
+        COALESCE(SUM(pu.xp_total), 0) AS xpTotal,
+        COALESCE(SUM(pu.puntos_investigacion_total), 0) AS puntosInvestigacionTotal,
+        COALESCE(MAX(pu.porcentaje), 0) AS porcentajeMax
+      FROM grupo_estudiantes ge
+      JOIN usuarios u ON u.id = ge.usuario_id
+      LEFT JOIN progreso_usuario pu ON pu.usuario_id = u.id
+      WHERE ge.grupo_id = ?
+      GROUP BY u.id, u.nombre, u.email
+      ORDER BY xpTotal DESC, u.nombre ASC
+      `,
+      [grupoId],
+    );
+
+    return {
+      grupoId: grupo.id,
+      grupoNombre: grupo.nombre,
+      ranking,
+      total: ranking.length,
+    };
+  }
+
+  // ============================================================
+  // MISIONES DONDE MÁS FALLAN LOS ESTUDIANTES DEL GRUPO
+  // ============================================================
+  async misionesFalladasDelGrupo(docenteId: string, grupoId: string) {
+    // Validar grupo
+    const grupo = await this.gruposRepo.findOne({
+      where: { id: grupoId, docenteId },
+    });
+
+    if (!grupo) {
+      throw new NotFoundException('Grupo no encontrado o no te pertenece');
+    }
+
+    const misiones = await this.grupoEstudiantesRepo.manager.query(
+      `
+      SELECT
+        m.id AS misionId,
+        m.titulo,
+        m.competencia,
+        COUNT(*) AS totalIntentos,
+        SUM(CASE WHEN i.resultado = 'incorrecto' THEN 1 ELSE 0 END) AS incorrectos,
+        SUM(CASE WHEN i.resultado = 'parcial' THEN 1 ELSE 0 END) AS parciales,
+        SUM(CASE WHEN i.resultado = 'correcto' THEN 1 ELSE 0 END) AS correctos
+      FROM grupo_estudiantes ge
+      JOIN intentos i ON i.usuario_id = ge.usuario_id
+      JOIN misiones m ON m.id = i.mision_id
+      WHERE ge.grupo_id = ?
+        AND i.origen = 'nivel'
+      GROUP BY m.id, m.titulo, m.competencia
+      HAVING incorrectos > 0 OR parciales > 0
+      ORDER BY incorrectos DESC, parciales DESC
+      LIMIT 20
+      `,
+      [grupoId],
+    );
+
+    return {
+      grupoId: grupo.id,
+      grupoNombre: grupo.nombre,
+      misiones,
+      total: misiones.length,
+    };
+  }
+
+  // ============================================================
+  // RESUMEN COMPLETO DEL GRUPO
+  // ============================================================
+  async resumenDelGrupo(docenteId: string, grupoId: string) {
+    // Validar grupo
+    const grupo = await this.gruposRepo.findOne({
+      where: { id: grupoId, docenteId },
+    });
+
+    if (!grupo) {
+      throw new NotFoundException('Grupo no encontrado o no te pertenece');
+    }
+
+    // 1. Totales básicos
+    const totales = await this.grupoEstudiantesRepo.manager.query(
+      `
+      SELECT
+        COUNT(DISTINCT ge.usuario_id) AS totalEstudiantes,
+        COALESCE(AVG(pu.xp_total), 0) AS xpPromedio,
+        COALESCE(AVG(pu.porcentaje), 0) AS porcentajePromedio
+      FROM grupo_estudiantes ge
+      LEFT JOIN progreso_usuario pu ON pu.usuario_id = ge.usuario_id
+      WHERE ge.grupo_id = ?
+      `,
+      [grupoId],
+    );
+
+    // 2. Estudiantes activos (que jugaron últimos 7 días)
+    const activos = await this.grupoEstudiantesRepo.manager.query(
+      `
+      SELECT COUNT(DISTINCT i.usuario_id) AS activos
+      FROM grupo_estudiantes ge
+      JOIN intentos i ON i.usuario_id = ge.usuario_id
+      WHERE ge.grupo_id = ?
+        AND i.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
+      `,
+      [grupoId],
+    );
+
+    // 3. Top 3 competencias débiles del grupo
+    const competenciasDebiles = await this.grupoEstudiantesRepo.manager.query(
+      `
+      SELECT
+        m.competencia,
+        COUNT(*) AS fallos
+      FROM grupo_estudiantes ge
+      JOIN intentos i ON i.usuario_id = ge.usuario_id
+      JOIN misiones m ON m.id = i.mision_id
+      WHERE ge.grupo_id = ?
+        AND i.resultado IN ('incorrecto', 'parcial')
+        AND i.origen = 'nivel'
+        AND m.competencia IS NOT NULL
+      GROUP BY m.competencia
+      ORDER BY fallos DESC
+      LIMIT 3
+      `,
+      [grupoId],
+    );
+
+    const totalesData = totales[0] ?? {
+      totalEstudiantes: 0,
+      xpPromedio: 0,
+      porcentajePromedio: 0,
+    };
+
+    return {
+      grupo: {
+        id: grupo.id,
+        nombre: grupo.nombre,
+        codigoAcceso: grupo.codigoAcceso,
+        activo: grupo.activo,
+      },
+      totalEstudiantes: Number(totalesData.totalEstudiantes),
+      xpPromedio: Math.round(Number(totalesData.xpPromedio)),
+      porcentajePromedio: Math.round(Number(totalesData.porcentajePromedio)),
+      estudiantesActivosUltimos7Dias: Number(activos[0]?.activos ?? 0),
+      competenciasDebiles,
+    };
+  }
 }

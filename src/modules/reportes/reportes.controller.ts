@@ -28,4 +28,28 @@ export class ReportesController {
   ) {
     return this.reportesService.competenciasDebiles(usuario.id, estudianteId);
   }
+
+  @Get('grupos/:id/ranking')
+  ranking(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Param('id') grupoId: string,
+  ) {
+    return this.reportesService.rankingDelGrupo(usuario.id, grupoId);
+  }
+
+  @Get('grupos/:id/misiones-falladas')
+  misionesFalladas(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Param('id') grupoId: string,
+  ) {
+    return this.reportesService.misionesFalladasDelGrupo(usuario.id, grupoId);
+  }
+
+  @Get('grupos/:id/resumen')
+  resumen(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Param('id') grupoId: string,
+  ) {
+    return this.reportesService.resumenDelGrupo(usuario.id, grupoId);
+  }
 }

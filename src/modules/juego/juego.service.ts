@@ -191,6 +191,8 @@ export class JuegoService {
       });
     }
 
+    
+
         // ---------- 9.5. Marcar recomendación como completada (si aplica) ----------
     if (
       origen === OrigenIntento.RECOMENDACION_DOCENTE &&
@@ -266,13 +268,16 @@ export class JuegoService {
     );
 
     // 2. Cargar todas las misiones de esos niveles
+    // 2. Cargar todas las misiones de esos niveles
     const misiones = await this.misionesRepo.manager.query(
       `
       SELECT
         m.id AS misionId,
         m.nivel_id AS nivelId,
         m.titulo,
+        m.teoria,
         m.tipo_interaccion AS tipoInteraccion,
+        m.contenido_json AS contenidoJson,
         m.competencia,
         m.es_principal AS esPrincipal,
         m.vidas_iniciales AS vidasIniciales,
@@ -362,8 +367,11 @@ export class JuegoService {
           return {
             id: String(m.misionId),
             titulo: m.titulo,
+            teoria: m.teoria,
             tipoInteraccion: m.tipoInteraccion,
+            contenidoJson: m.contenidoJson,
             competencia: m.competencia,
+            
             esPrincipal: Boolean(m.esPrincipal),
             vidasIniciales,
             xpRecompensa: m.xpRecompensa,
@@ -543,6 +551,7 @@ export class JuegoService {
     return {
       misionId: mision.id,
       titulo: mision.titulo,
+      teoria: mision.teoria,
       tipoInteraccion: mision.tipoInteraccion,
       competencia: mision.competencia,
       vidasIniciales: mision.vidasIniciales,
@@ -590,5 +599,45 @@ export class JuegoService {
   // ============================================================
   async obtenerTextoGenerado(usuarioId: string, misionId: string) {
     return this.textosGeneradosService.obtenerOCrear(usuarioId, misionId);
+  }
+
+    // ============================================================
+  // INSIGNIAS DISPONIBLES (todas + estado de obtención)
+  // ============================================================
+  async insigniasDisponibles(usuarioId: string) {
+    const insignias = await this.misionesRepo.manager.query(
+      `
+      SELECT
+        i.id,
+        i.nombre,
+        i.descripcion,
+        i.icono_url AS iconoUrl,
+        CASE WHEN ui.id IS NULL THEN 0 ELSE 1 END AS obtenida,
+        ui.obtenida_en AS obtenidaEn
+      FROM insignias i
+      LEFT JOIN usuario_insignias ui
+        ON ui.insignia_id = i.id AND ui.usuario_id = ?
+      ORDER BY obtenida DESC, i.id ASC
+      `,
+      [usuarioId],
+    );
+
+    const insigniasFormateadas = insignias.map((i: any) => ({
+      id: i.id,
+      nombre: i.nombre,
+      descripcion: i.descripcion,
+      iconoUrl: i.iconoUrl,
+      obtenida: Boolean(i.obtenida),
+      obtenidaEn: i.obtenidaEn ?? null,
+    }));
+
+        const obtenidas = insigniasFormateadas.filter((i: any) => i.obtenida).length;
+
+    return {
+      insignias: insigniasFormateadas,
+      total: insigniasFormateadas.length,
+      obtenidas,
+      pendientes: insigniasFormateadas.length - obtenidas,
+    };
   }
 }

@@ -25,6 +25,9 @@ export class Mision {
   @Column({ type: 'text' })
   enunciado: string;
 
+  @Column({ type: 'text', nullable: true })
+  teoria: string | null;
+
   @Column({
     name: 'tipo_interaccion',
     type: 'enum',

@@ -86,4 +86,9 @@ export class JuegoController {
   ) {
     return this.juegoService.obtenerTextoGenerado(usuario.id, misionId);
   }
+    // ---------- INSIGNIAS DISPONIBLES ----------
+  @Get('insignias-disponibles')
+  insigniasDisponibles(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.juegoService.insigniasDisponibles(usuario.id);
+  }
 }

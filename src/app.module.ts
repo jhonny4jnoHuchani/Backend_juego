@@ -15,6 +15,8 @@ import { BossModule } from './modules/boss/boss.module';
 import { GruposModule } from './modules/grupos/grupos.module';
 import { RecomendacionesModule } from './modules/recomendaciones/recomendaciones.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
+import { HealthModule } from './modules/health/health.module';
+import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
 
 @Module({
   imports: [
@@ -46,7 +48,9 @@ import { ReportesModule } from './modules/reportes/reportes.module';
     BossModule,
     GruposModule,
     RecomendacionesModule,
-    ReportesModule,     
+    ReportesModule,
+    HealthModule,
+    NotificacionesModule,     
   ],
   controllers: [AppController],
   providers: [AppService],

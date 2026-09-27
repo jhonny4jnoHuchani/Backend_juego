@@ -7,6 +7,7 @@ import { Intento } from '../intentos/entities/intento.entity';
 import { Nivel } from '../../niveles/entities/nivel.entity';
 import { ResultadoIntento } from '../../../common/enums/resultado-intento.enum';
 import { OrigenIntento } from '../../../common/enums/origen-intento.enum';
+import { NotificacionesService } from '../../notificaciones/notificaciones.service';
 
 @Injectable()
 export class InsigniasService {
@@ -21,6 +22,8 @@ export class InsigniasService {
     private readonly intentosRepo: Repository<Intento>,
     @InjectRepository(Nivel)
     private readonly nivelesRepo: Repository<Nivel>,
+
+    private readonly notificacionesService: NotificacionesService,
   ) {}
 
   /**
@@ -209,6 +212,14 @@ export class InsigniasService {
     await this.usuarioInsigniasRepo.save({
       usuarioId,
       insigniaId: insignia.id,
+    });
+        // Notificar al usuario
+    await this.notificacionesService.crear({
+      usuarioId,
+      tipo: 'insignia_obtenida',
+      titulo: '¡Nueva insignia desbloqueada!',
+      mensaje: `Has obtenido la insignia "${insignia.nombre}"`,
+      referenciaId: String(insignia.id),
     });
 
     this.logger.log(`🏆 Insignia "${nombreInsignia}" otorgada a usuario ${usuarioId}`);

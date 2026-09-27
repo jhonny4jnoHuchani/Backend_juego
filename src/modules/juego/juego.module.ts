@@ -28,6 +28,9 @@ import { InsigniasService } from './insignias/insignias.service';
 // Controller
 import { JuegoController } from './juego.controller';
 
+// notificaciones
+import { NotificacionesModule } from '../notificaciones/notificaciones.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -45,6 +48,7 @@ import { JuegoController } from './juego.controller';
     AuthModule,
     RecomendacionesModule,
     TextosGeneradosModule,   // ← NUEVO
+    NotificacionesModule,
   ],
   controllers: [JuegoController],
   providers: [

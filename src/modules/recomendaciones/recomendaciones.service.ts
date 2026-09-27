@@ -9,6 +9,7 @@ import { RecomendacionDocente } from './entities/recomendacion-docente.entity';
 import { Mision } from '../misiones/entities/mision.entity';
 import { CrearRecomendacionDto } from './dto/crear-recomendacion.dto';
 import { GruposService } from '../grupos/grupos.service';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 
 @Injectable()
 export class RecomendacionesService {
@@ -18,6 +19,7 @@ export class RecomendacionesService {
     @InjectRepository(Mision)
     private readonly misionesRepo: Repository<Mision>,
     private readonly gruposService: GruposService,
+    private readonly notificacionesService: NotificacionesService,
   ) {}
 
   // ============================================================
@@ -47,6 +49,7 @@ export class RecomendacionesService {
     }
 
     // 3. Crear la recomendación
+    // 3. Crear la recomendación
     const recomendacion = this.recomendacionesRepo.create({
       docenteId,
       estudianteId: dto.estudianteId,
@@ -55,7 +58,18 @@ export class RecomendacionesService {
       completada: false,
     });
 
-    return this.recomendacionesRepo.save(recomendacion);
+    const guardada = await this.recomendacionesRepo.save(recomendacion);
+
+    // 4. Notificar al estudiante
+    await this.notificacionesService.crear({
+      usuarioId: dto.estudianteId,
+      tipo: 'recomendacion_asignada',
+      titulo: 'Nueva recomendación de refuerzo',
+      mensaje: `Tu docente te asignó la misión "${mision.titulo}" como refuerzo.`,
+      referenciaId: guardada.id,
+    });
+
+    return guardada;
   }
 
   async listarDelDocente(docenteId: string) {
@@ -131,9 +145,24 @@ export class RecomendacionesService {
    * la misión que le fue asignada como refuerzo.
    */
   async marcarCompletada(recomendacionId: string): Promise<void> {
+    const recomendacion = await this.recomendacionesRepo.findOne({
+      where: { id: recomendacionId },
+    });
+
+    if (!recomendacion) return;
+
     await this.recomendacionesRepo.update(
       { id: recomendacionId },
       { completada: true },
     );
+
+    // Notificar al docente
+    await this.notificacionesService.crear({
+      usuarioId: recomendacion.docenteId,
+      tipo: 'recomendacion_completada',
+      titulo: 'Recomendación completada',
+      mensaje: 'Un estudiante completó la misión de refuerzo que le asignaste.',
+      referenciaId: recomendacion.id,
+    });
   }
 }
