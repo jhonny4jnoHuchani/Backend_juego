@@ -29,6 +29,14 @@ export class ReportesController {
     return this.reportesService.competenciasDebiles(usuario.id, estudianteId);
   }
 
+  @Get('estudiantes/:id/misiones-candidatas')
+  misionesCandidatas(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Param('id') estudianteId: string,
+  ) {
+    return this.reportesService.misionesCandidatas(usuario.id, estudianteId);
+  }
+
   @Get('grupos/:id/ranking')
   ranking(
     @CurrentUser() usuario: UsuarioAutenticado,
@@ -52,4 +60,6 @@ export class ReportesController {
   ) {
     return this.reportesService.resumenDelGrupo(usuario.id, grupoId);
   }
+
+
 }

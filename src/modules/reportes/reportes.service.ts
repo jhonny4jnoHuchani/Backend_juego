@@ -293,4 +293,70 @@ export class ReportesService {
       competenciasDebiles,
     };
   }
+
+
+    // ============================================================
+  // MISIONES CANDIDATAS PARA RECOMENDAR A UN ESTUDIANTE
+  // ============================================================
+  async misionesCandidatas(docenteId: string, estudianteId: string) {
+    // Validar que el estudiante pertenece a algún grupo del docente
+    const pertenece = await this.grupoEstudiantesRepo.manager.query(
+      `
+      SELECT COUNT(*) AS total
+      FROM grupo_estudiantes ge
+      JOIN grupos g ON g.id = ge.grupo_id
+      WHERE g.docente_id = ? AND ge.usuario_id = ?
+      `,
+      [docenteId, estudianteId],
+    );
+
+    if (Number(pertenece[0]?.total ?? 0) === 0) {
+      throw new ForbiddenException(
+        'El estudiante no pertenece a ninguno de tus grupos',
+      );
+    }
+
+    const misiones = await this.grupoEstudiantesRepo.manager.query(
+      `
+      SELECT
+        m.id,
+        m.titulo,
+        m.competencia,
+        n.titulo AS nivelTitulo,
+        mo.nombre AS modalidadNombre,
+        COUNT(*) AS fallos
+      FROM intentos i
+      JOIN misiones m ON m.id = i.mision_id
+      JOIN niveles n ON n.id = m.nivel_id
+      JOIN modalidades mo ON mo.id = n.modalidad_id
+      WHERE i.usuario_id = ?
+        AND i.resultado IN ('incorrecto', 'parcial')
+        AND i.origen = 'nivel'
+        AND NOT EXISTS (
+          SELECT 1 FROM intentos i2
+          WHERE i2.usuario_id = i.usuario_id
+            AND i2.mision_id = i.mision_id
+            AND i2.resultado = 'correcto'
+            AND i2.origen = 'nivel'
+        )
+      GROUP BY m.id, m.titulo, m.competencia, n.titulo, mo.nombre
+      ORDER BY fallos DESC, m.id ASC
+      LIMIT 20
+      `,
+      [estudianteId],
+    );
+
+    return {
+      estudianteId,
+      misiones: misiones.map((m: any) => ({
+        id: String(m.id),
+        titulo: m.titulo,
+        competencia: m.competencia,
+        nivelTitulo: m.nivelTitulo,
+        modalidadNombre: m.modalidadNombre,
+        fallos: Number(m.fallos),
+      })),
+      total: misiones.length,
+    };
+  }
 }
