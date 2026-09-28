@@ -1,114 +1,321 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# TESIS QUEST Backend — Guía de Despliegue en Producción
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Guía para desplegar el backend NestJS en un servidor **Ubuntu 22.04 LTS**.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## Índice
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+1. [Requisitos previos del servidor](#1-requisitos-previos-del-servidor)
+2. [Clonar el repositorio](#2-clonar-el-repositorio)
+3. [Configurar el backend](#3-configurar-el-backend)
+4. [Nginx (reverse proxy + SSL)](#4-nginx-reverse-proxy--ssl)
+5. [Mantenimiento](#5-mantenimiento)
+6. [Troubleshooting](#6-troubleshooting)
+7. [Checklist final de despliegue](#7-checklist-final-de-despliegue)
 
-## Project setup
+---
 
-```bash
-$ npm install
-```
+## 1. Requisitos previos del servidor
 
-## Compile and run the project
+| Herramienta | Versión recomendada | Verificar con |
+|---|---|---|
+| Node.js | 20.x LTS | `node -v` |
+| npm | 10.x (viene con Node 20) | `npm -v` |
+| MySQL | 8.0+ | `mysql --version` |
+| Git | 2.x | `git --version` |
+| PM2 | última (global) | `pm2 -v` |
+| Nginx | 1.18+ (opcional, para proxy y SSL) | `nginx -v` |
+
+### Instalación de Node.js 20 (vía NodeSource)
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+node -v   # debe mostrar v20.x
 ```
 
-## Run tests
+### Instalación de MySQL 8
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+sudo apt update
+sudo apt install -y mysql-server
+sudo mysql_secure_installation
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Instalación de Git, PM2 y Nginx
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+sudo apt install -y git nginx
+sudo npm install -g pm2
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+> **Nota de seguridad:** no uses el usuario `root` del sistema para correr la aplicación. Crea un usuario dedicado (ej. `deploy`) con permisos limitados.
 
-## Observability
+```bash
+sudo adduser deploy
+sudo usermod -aG sudo deploy
+su - deploy
+```
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+---
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+## 2. Clonar el repositorio
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+```bash
+cd ~
+git clone <URL_DE_TU_REPOSITORIO> tesis-quest-backend
+cd tesis-quest-backend
+```
 
-## Resources
+---
 
-Check out a few resources that may come in handy when working with NestJS:
+## 3. Configurar el backend
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observer](https://observer.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 3.1. Instalar dependencias
 
-## Support
+```bash
+npm install
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### 3.2. Crear la base de datos en MySQL
 
-## Stay in touch
+```bash
+sudo mysql -u root -p
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```sql
+CREATE DATABASE tesis_quest
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
 
-## License
+CREATE USER 'tesis_quest_user'@'localhost' IDENTIFIED BY 'CAMBIA_ESTA_CONTRASENA';
+GRANT ALL PRIVILEGES ON tesis_quest.* TO 'tesis_quest_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### 3.3. Crear el archivo `.env`
+
+```bash
+nano .env
+```
+
+```env
+# ── Entorno ──────────────────────────────────────────
+NODE_ENV=production
+PORT=3000
+
+# ── Base de datos ────────────────────────────────────
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=tesis_quest_user
+DB_PASS=CAMBIA_ESTA_CONTRASENA
+DB_NAME=tesis_quest
+
+# ── Autenticación JWT ────────────────────────────────
+JWT_SECRET=genera_un_secreto_largo_y_aleatorio_aqui
+JWT_ACCESS_EXPIRES=15m
+JWT_REFRESH_SECRET=otro_secreto_distinto_igual_de_largo
+JWT_REFRESH_EXPIRES=7d
+
+# ── IA evaluadora ────────────────────────────────────
+GEMINI_API_KEY=tu_api_key_de_gemini
+GROQ_API_KEY=tu_api_key_de_groq
+
+# ── CORS ─────────────────────────────────────────────
+CORS_ORIGIN=https://tu-dominio.com
+```
+
+Genera secretos JWT seguros con:
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+```
+
+> ⚠️ **Nunca subas `.env` a git.** Verifica que esté en `.gitignore`:
+> ```bash
+> grep -q "^\.env$" .gitignore || echo ".env" >> .gitignore
+> ```
+
+### 3.4. Correr los seeds (datos iniciales)
+
+Con la base de datos vacía, corre todos los seeds en orden:
+
+```bash
+npm run seed:all
+```
+
+Esto ejecuta, en orden: `seed` (modalidades base) → `seed:tesis` (niveles de Tesis) → `seed:tesis:misiones` (misiones) → `seed:teorias` (teoría breve por misión).
+
+> Solo corre los seeds **una vez**, al desplegar por primera vez o si reseteas la base de datos. Confirma si tus scripts son idempotentes antes de repetirlos sobre datos existentes, para no duplicar registros.
+
+### 3.5. Compilar y arrancar con PM2
+
+```bash
+npm run build
+pm2 start dist/main.js --name tesis-quest-api
+pm2 save
+pm2 startup   # sigue la instrucción que imprime, para que PM2 arranque solo al reiniciar el servidor
+```
+
+### 3.6. Verificar que corre
+
+```bash
+pm2 status
+pm2 logs tesis-quest-api --lines 50
+curl http://localhost:3000/health
+```
+
+---
+
+## 4. Nginx (reverse proxy + SSL)
+
+Aunque el backend puede exponerse directo en el puerto 3000, lo recomendable es ponerlo detrás de Nginx para manejar SSL y tener un dominio limpio.
+
+### 4.1. Configuración del sitio
+
+```bash
+sudo nano /etc/nginx/sites-available/tesis-quest-api
+```
+
+```nginx
+server {
+    listen 80;
+    server_name api.tu-dominio.com;
+
+    location / {
+        proxy_pass http://localhost:3000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+Activa el sitio:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/tesis-quest-api /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 4.2. SSL con Let's Encrypt (Certbot)
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d api.tu-dominio.com
+```
+
+Certbot edita automáticamente el bloque de Nginx para forzar HTTPS y configura la renovación automática. Verifica con:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+> ⚠️ Con SSL activo, actualiza `CORS_ORIGIN` en el `.env` a `https://` y avisa al equipo de frontend para que apunten su `EXPO_PUBLIC_API_URL` al nuevo dominio con `https://`.
+
+---
+
+## 5. Mantenimiento
+
+| Tarea | Comando |
+|---|---|
+| Reiniciar el backend | `pm2 restart tesis-quest-api` |
+| Reiniciar recargando variables de `.env` | `pm2 restart tesis-quest-api --update-env` |
+| Ver logs en vivo | `pm2 logs tesis-quest-api` |
+| Ver últimas 100 líneas | `pm2 logs tesis-quest-api --lines 100 --nostream` |
+| Ver estado de todos los procesos | `pm2 status` |
+| Detener el backend | `pm2 stop tesis-quest-api` |
+| Eliminar el proceso de PM2 | `pm2 delete tesis-quest-api` |
+| Recargar Nginx tras cambiar config | `sudo systemctl reload nginx` |
+
+### Actualizar código
+
+```bash
+cd ~/tesis-quest-backend
+git pull origin main
+npm install
+npm run build
+pm2 restart tesis-quest-api
+```
+
+### Correr seeds nuevamente (solo si es necesario)
+
+```bash
+npm run seed:all
+```
+
+> Úsalo con cuidado en un servidor con datos reales de usuarios — confirma primero si los seeds son seguros de repetir sin duplicar registros.
+
+---
+
+## 6. Troubleshooting
+
+| Problema | Causa probable | Solución |
+|---|---|---|
+| `Error: listen EADDRINUSE :::3000` | El puerto 3000 ya está en uso | `sudo lsof -i :3000` para ver qué proceso lo ocupa, y `pm2 delete` cualquier instancia duplicada |
+| Backend no conecta a MySQL | Credenciales incorrectas en `.env`, o MySQL no está corriendo | `sudo systemctl status mysql`; probar conexión manual: `mysql -u tesis_quest_user -p -h localhost tesis_quest` |
+| `JsonWebTokenError: invalid signature` | `JWT_SECRET` cambió después de emitir tokens | Los tokens viejos quedan inválidos si cambias el secreto; los usuarios deben volver a loguearse |
+| `502 Bad Gateway` en Nginx | El backend (PM2) no está corriendo | `pm2 status` y `pm2 logs tesis-quest-api` para ver el error real |
+| Certbot falla al emitir certificado | El dominio no apunta aún a la IP del servidor | Verifica DNS con `dig api.tu-dominio.com` antes de reintentar |
+| La IA evaluadora no responde | `GEMINI_API_KEY` o `GROQ_API_KEY` inválida o sin cuota | Revisa logs (`pm2 logs`) buscando errores 401/429 de esas APIs |
+| Cambios en `.env` no toman efecto | PM2 sigue corriendo el proceso viejo con variables antiguas en memoria | `pm2 restart tesis-quest-api --update-env` |
+| CORS bloqueando peticiones del frontend | `CORS_ORIGIN` no coincide con el dominio real del frontend | Verifica que `CORS_ORIGIN` en `.env` sea exactamente el origen que usa el frontend (protocolo incluido) |
+
+### Verificación rápida de servicios
+
+```bash
+pm2 status                                       # backend corriendo
+sudo systemctl status mysql                      # MySQL corriendo
+sudo systemctl status nginx                      # Nginx corriendo (si aplica)
+curl http://localhost:3000/health                # backend responde localmente
+curl https://api.tu-dominio.com/health           # backend responde vía Nginx/dominio
+mysql -u tesis_quest_user -p -e "SHOW TABLES;" tesis_quest   # tablas existen
+```
+
+---
+
+## 7. Checklist final de despliegue
+
+- [ ] Servidor Ubuntu 22.04 actualizado (`sudo apt update && sudo apt upgrade -y`)
+- [ ] Usuario `deploy` creado (no usar `root` para correr la app)
+- [ ] Node.js 20.x instalado y verificado
+- [ ] MySQL 8 instalado, `mysql_secure_installation` corrido
+- [ ] Git, PM2 y Nginx instalados
+- [ ] Repositorio clonado
+- [ ] Base de datos `tesis_quest` y usuario MySQL dedicado creados
+- [ ] `.env` creado con todas las variables (DB, JWT, IA, CORS)
+- [ ] `.env` agregado a `.gitignore`
+- [ ] `npm install` corrido
+- [ ] Seeds corridos (`npm run seed:all`)
+- [ ] Backend compilado (`npm run build`) y arrancado con PM2
+- [ ] `pm2 save` y `pm2 startup` configurados (para que sobreviva a reinicios del servidor)
+- [ ] Backend responde en `curl http://localhost:3000/health`
+- [ ] Nginx configurado como reverse proxy (si aplica)
+- [ ] `sudo nginx -t` sin errores y `systemctl reload nginx` aplicado
+- [ ] Dominio apuntando a la IP del servidor (verificado con `dig`)
+- [ ] Certificado SSL emitido con Certbot (si aplica)
+- [ ] `CORS_ORIGIN` actualizado a `https://` y coincide con el origen real del frontend
+- [ ] Prueba end-to-end: `curl` a un endpoint real (ej. login) desde fuera del servidor
+- [ ] Backup inicial de la base de datos hecho (`mysqldump`)
+
+---
+
+## Notas de seguridad
+
+- **Nunca** subas `.env` a git — contiene secretos JWT y API keys de IA.
+- Usa contraseñas fuertes y distintas para el usuario de MySQL y los secretos JWT (no reutilices el mismo string).
+- Sirve todo por **HTTPS** una vez tengas el dominio y el certificado.
+- Restringe el acceso a MySQL solo a `localhost` (ya está así en la config de arriba) a menos que necesites conexión remota explícita.
+- Considera activar `ufw` (firewall) permitiendo solo los puertos 22 (SSH), 80 y 443:
+  ```bash
+  sudo ufw allow OpenSSH
+  sudo ufw allow 'Nginx Full'
+  sudo ufw enable
+  ```

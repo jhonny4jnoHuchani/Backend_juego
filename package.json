@@ -22,7 +22,8 @@
     "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
     "seed:tesis": "ts-node -r tsconfig-paths/register src/database/seed-tesis.ts",
     "seed:tesis:misiones": "ts-node -r tsconfig-paths/register src/database/seed-tesis-misiones.ts",
-    "seed:teorias": "ts-node -r tsconfig-paths/register src/database/seed-teorias.ts"
+    "seed:teorias": "ts-node -r tsconfig-paths/register src/database/seed-teorias.ts",
+    "seed:all": "npm run seed && npm run seed:tesis && npm run seed:tesis:misiones && npm run seed:teorias"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
