@@ -34,4 +34,12 @@ export class BossController {
   ) {
     return this.bossService.responder(usuario.id, sesionId, dto);
   }
+
+  @Get('niveles/:id/sesion-activa')
+  sesionActiva(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Param('id') nivelId: string,
+  ) {
+    return this.bossService.obtenerSesionActiva(usuario.id, nivelId);
+  }
 }

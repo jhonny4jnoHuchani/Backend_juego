@@ -265,4 +265,31 @@ export class BossService {
       tiempoRestanteSegundos: Math.floor(tiempoRestante),
     };
   }
+
+
+    /**
+   * Devuelve la sesión activa (no finalizada y no expirada) del usuario
+   * para un nivel Boss. Si no hay, devuelve null.
+   */
+  async obtenerSesionActiva(usuarioId: string, nivelId: string) {
+    const sesion = await this.sesionesRepo.findOne({
+      where: { usuarioId, nivelId, finalizado: false },
+      order: { iniciadoEn: 'DESC' },
+    });
+
+    if (!sesion) {
+      return null;
+    }
+
+    // Lazy-check: si ya expiró, se marca como no_superado y se devuelve null
+    await this.aplicarLazyCheck(sesion);
+
+    if (sesion.finalizado) {
+      return null;
+    }
+
+    return this.formatearSesion(sesion);
+  }
+
+  
 }
