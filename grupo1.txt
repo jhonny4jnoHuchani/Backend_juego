@@ -1,0 +1,556 @@
+import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  const config = app.get(ConfigService);
+
+  app.setGlobalPrefix('api');
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
+
+  // ============================================================
+  // SWAGGER
+  // ============================================================
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('TESIS QUEST API')
+    .setDescription(
+      'Backend del juego educativo gamificado para aprender a construir investigaciones científicas.',
+    )
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Ingresa tu access_token',
+        in: 'header',
+      },
+      'access-token',
+    )
+    .build();
+
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
+
+  const port = config.get<number>('port') ?? 3000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 TESIS QUEST backend corriendo en http://localhost:${port}/api`);
+  console.log(`📚 Swagger disponible en http://localhost:${port}/api/docs`);
+}
+bootstrap();import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import configuration from './config/configuration';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { UsuariosModule } from './modules/usuarios/usuarios.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { ModalidadesModule } from './modules/modalidades/modalidades.module';
+import { NivelesModule } from './modules/niveles/niveles.module';
+import { MisionesModule } from './modules/misiones/misiones.module';
+import { IAModule } from './modules/ia/ia.module';
+import { JuegoModule } from './modules/juego/juego.module';
+import { BossModule } from './modules/boss/boss.module';
+import { GruposModule } from './modules/grupos/grupos.module';
+import { RecomendacionesModule } from './modules/recomendaciones/recomendaciones.module';
+import { ReportesModule } from './modules/reportes/reportes.module';
+import { HealthModule } from './modules/health/health.module';
+import { NotificacionesModule } from './modules/notificaciones/notificaciones.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      load: [configuration],
+    }),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'mysql',
+        host: config.get<string>('database.host'),
+        port: config.get<number>('database.port'),
+        username: config.get<string>('database.username'),
+        password: config.get<string>('database.password'),
+        database: config.get<string>('database.database'),
+        autoLoadEntities: true,
+        synchronize: false,
+        logging: false,
+      }),
+    }),
+    UsuariosModule,
+    AuthModule,
+    ModalidadesModule,
+    NivelesModule,
+    MisionesModule,
+    IAModule,
+    JuegoModule,
+    BossModule,
+    GruposModule,
+    RecomendacionesModule,
+    ReportesModule,
+    HealthModule,
+    NotificacionesModule,     
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}export default () => ({
+  port: parseInt(process.env.PORT ?? '3000', 10),
+  database: {
+    host: process.env.DB_HOST ?? 'localhost',
+    port: parseInt(process.env.DB_PORT ?? '3306', 10),
+    username: process.env.DB_USERNAME ?? 'root',
+    password: process.env.DB_PASSWORD ?? '',
+    database: process.env.DB_DATABASE ?? 'tesis_quest',
+  },
+  jwt: {
+    accessSecret: process.env.JWT_ACCESS_SECRET ?? 'cambiar_en_produccion',
+    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m',
+    refreshSecret: process.env.JWT_REFRESH_SECRET ?? 'cambiar_en_produccion_refresh',
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
+  },
+  ia: {
+    geminiApiKey: process.env.GEMINI_API_KEY ?? '',
+    geminiModelPrimary: process.env.GEMINI_MODEL_PRIMARY ?? 'gemini-3.6-flash',
+    geminiModelFallback: process.env.GEMINI_MODEL_FALLBACK ?? 'gemini-3.7-flash',
+    groqApiKey: process.env.GROQ_API_KEY ?? '',
+    groqModel: process.env.GROQ_MODEL ?? 'llama-3.1-8b-instant',
+  },
+});import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { RefreshDto } from './dto/refresh.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { UsuarioAutenticado } from '../../common/decorators/current-user.decorator';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Post('register')
+  register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  @Post('login')
+  login(@Body() dto: LoginDto) {
+    return this.authService.login(dto);
+  }
+
+  @Post('refresh')
+  refresh(@Body() dto: RefreshDto) {
+    return this.authService.refresh(dto.refreshToken);
+  }
+
+  @Post('logout')
+  logout(@Body() dto: RefreshDto) {
+    return this.authService.logout(dto.refreshToken);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  me(@CurrentUser() usuario: UsuarioAutenticado) {
+    return usuario;
+  }
+}import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
+import { createHash } from 'crypto';
+import { UsuariosService } from '../usuarios/usuarios.service';
+import { RefreshToken } from './entities/refresh-token.entity';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly usuariosService: UsuariosService,
+    private readonly jwtService: JwtService,
+    private readonly config: ConfigService,
+    @InjectRepository(RefreshToken)
+    private readonly refreshRepo: Repository<RefreshToken>,
+  ) {}
+
+  // ============================================================
+  // REGISTRO
+  // ============================================================
+  async register(dto: RegisterDto) {
+    const existente = await this.usuariosService.buscarPorEmail(dto.email);
+    if (existente) {
+      throw new ConflictException('El email ya está registrado');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    const usuario = await this.usuariosService.crear({
+      nombre: dto.nombre,
+      email: dto.email,
+      passwordHash,
+      rol: dto.rol,
+      universidad: dto.universidad,
+      carrera: dto.carrera,
+      semestre: dto.semestre,
+    });
+
+    return this.generarTokens(usuario.id, usuario.email, usuario.rol);
+  }
+
+  // ============================================================
+  // LOGIN
+  // ============================================================
+  async login(dto: LoginDto) {
+    const usuario = await this.usuariosService.buscarPorEmail(dto.email);
+    if (!usuario) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    const passwordValida = await bcrypt.compare(dto.password, usuario.passwordHash);
+    if (!passwordValida) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+    return this.generarTokens(usuario.id, usuario.email, usuario.rol);
+  }
+
+  // ============================================================
+  // REFRESH
+  // ============================================================
+  async refresh(refreshTokenPlano: string) {
+    let payload: any;
+    try {
+      payload = await this.jwtService.verifyAsync(refreshTokenPlano, {
+        secret: this.config.get<string>('jwt.refreshSecret'),
+      });
+    } catch {
+      throw new UnauthorizedException('Refresh token inválido o expirado');
+    }
+
+    const tokenHash = this.hashToken(refreshTokenPlano);
+
+    const registro = await this.refreshRepo.findOne({
+      where: { tokenHash, revocado: false },
+    });
+
+    if (!registro) {
+      throw new UnauthorizedException('Refresh token no encontrado o revocado');
+    }
+
+    if (new Date(registro.expiraEn) < new Date()) {
+      throw new UnauthorizedException('Refresh token expirado');
+    }
+
+    const usuario = await this.usuariosService.buscarPorIdOrFail(payload.sub);
+
+    return this.generarTokens(usuario.id, usuario.email, usuario.rol);
+  }
+
+  // ============================================================
+  // LOGOUT (revoca solo el refresh token actual)
+  // ============================================================
+  async logout(refreshTokenPlano: string) {
+    const tokenHash = this.hashToken(refreshTokenPlano);
+    await this.refreshRepo.update({ tokenHash }, { revocado: true });
+    return { mensaje: 'Sesión cerrada correctamente' };
+  }
+
+  // ============================================================
+  // HELPERS
+  // ============================================================
+    private async generarTokens(usuarioId: string, email: string, rol: string) {
+    const payload = { sub: usuarioId, email, rol };
+
+    const accessToken = await this.jwtService.signAsync(payload, {
+        secret: this.config.get<string>('jwt.accessSecret'),
+        expiresIn: this.config.get<string>('jwt.accessExpiresIn') as any,
+    });
+
+    const refreshToken = await this.jwtService.signAsync(payload, {
+        secret: this.config.get<string>('jwt.refreshSecret'),
+        expiresIn: this.config.get<string>('jwt.refreshExpiresIn') as any,
+    });
+
+    await this.guardarRefreshToken(usuarioId, refreshToken);
+
+    return {
+        accessToken,
+        refreshToken,
+        usuario: { id: usuarioId, email, rol },
+    };
+    }
+
+  private async guardarRefreshToken(usuarioId: string, refreshTokenPlano: string) {
+    const tokenHash = this.hashToken(refreshTokenPlano);
+
+    const expiraEn = new Date();
+    expiraEn.setDate(expiraEn.getDate() + 7); // 7 días
+
+    const registro = this.refreshRepo.create({
+      usuarioId,
+      tokenHash,
+      expiraEn,
+      revocado: false,
+    });
+
+    await this.refreshRepo.save(registro);
+  }
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+}import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+
+export class LoginDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
+import { Rol } from '../../../common/enums/rol.enum';
+
+export class RegisterDto {
+  @IsString()
+  @IsNotEmpty()
+  nombre: string;
+
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
+  password: string;
+
+  @IsEnum(Rol)
+  rol: Rol;
+
+  @IsOptional()
+  @IsString()
+  universidad?: string;
+
+  @IsOptional()
+  @IsString()
+  carrera?: string;
+
+  @IsOptional()
+  @IsString()
+  semestre?: string;
+}import { IsNotEmpty, IsString } from 'class-validator';
+
+export class RefreshDto {
+  @IsString()
+  @IsNotEmpty()
+  refreshToken: string;
+}import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { UsuariosService } from '../../usuarios/usuarios.service';
+
+interface JwtPayload {
+  sub: string;
+  email: string;
+  rol: string;
+}
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+  constructor(
+    config: ConfigService,
+    private readonly usuariosService: UsuariosService,
+  ) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: config.get<string>('jwt.accessSecret') ?? 'cambiar_en_produccion',
+    });
+  }
+
+  async validate(payload: JwtPayload) {
+    const usuario = await this.usuariosService.buscarPorId(payload.sub);
+    if (!usuario) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+
+    return {
+      id: usuario.id,
+      email: usuario.email,
+      rol: usuario.rol,
+    };
+  }
+}import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Rol } from '../../../common/enums/rol.enum';
+
+@Entity('usuarios')
+export class Usuario {
+  @PrimaryGeneratedColumn({ type: 'bigint', unsigned: true })
+  id: string;
+
+  @Column({ type: 'varchar', length: 150 })
+  nombre: string;
+
+  @Column({ type: 'varchar', length: 150, unique: true })
+  email: string;
+
+  @Column({ name: 'password_hash', type: 'varchar', length: 255 })
+  passwordHash: string;
+
+  @Column({ type: 'enum', enum: Rol, default: Rol.ESTUDIANTE })
+  rol: Rol;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  universidad: string | null;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  carrera: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  semestre: string | null;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
+  updatedAt: Date;
+}import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Usuario } from './entities/usuario.entity';
+import { Rol } from '../../common/enums/rol.enum';
+
+@Injectable()
+export class UsuariosService {
+  constructor(
+    @InjectRepository(Usuario)
+    private readonly usuariosRepo: Repository<Usuario>,
+  ) {}
+
+  async buscarPorEmail(email: string): Promise<Usuario | null> {
+    return this.usuariosRepo.findOne({ where: { email } });
+  }
+
+  async buscarPorId(id: string): Promise<Usuario | null> {
+    return this.usuariosRepo.findOne({ where: { id } });
+  }
+
+  async buscarPorIdOrFail(id: string): Promise<Usuario> {
+    const usuario = await this.buscarPorId(id);
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+    return usuario;
+  }
+
+  async crear(data: {
+    nombre: string;
+    email: string;
+    passwordHash: string;
+    rol: Rol;
+    universidad?: string;
+    carrera?: string;
+    semestre?: string;
+  }): Promise<Usuario> {
+    const usuario = this.usuariosRepo.create(data);
+    return this.usuariosRepo.save(usuario);
+  }
+}import { Injectable } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {}import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { Rol } from '../enums/rol.enum';
+import { ROLES_KEY } from '../decorators/roles.decorator';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
+  canActivate(context: ExecutionContext): boolean {
+    const rolesRequeridos = this.reflector.getAllAndOverride<Rol[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    // Si no hay @Roles() en el controller, se permite
+    if (!rolesRequeridos || rolesRequeridos.length === 0) {
+      return true;
+    }
+
+    const request = context.switchToHttp().getRequest();
+    const usuario = request.user;
+
+    if (!usuario || !rolesRequeridos.includes(usuario.rol)) {
+      throw new ForbiddenException(
+        'No tienes permisos para acceder a este recurso',
+      );
+    }
+
+    return true;
+  }
+}import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+
+export interface UsuarioAutenticado {
+  id: string;
+  email: string;
+  rol: string;
+}
+
+export const CurrentUser = createParamDecorator(
+  (data: keyof UsuarioAutenticado | undefined, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    const user = request.user as UsuarioAutenticado;
+    return data ? user?.[data] : user;
+  },
+);import { SetMetadata } from '@nestjs/common';
+import { Rol } from '../enums/rol.enum';
+
+export const ROLES_KEY = 'roles';
+export const Roles = (...roles: Rol[]) => SetMetadata(ROLES_KEY, roles);

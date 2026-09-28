@@ -91,4 +91,12 @@ export class JuegoController {
   insigniasDisponibles(@CurrentUser() usuario: UsuarioAutenticado) {
     return this.juegoService.insigniasDisponibles(usuario.id);
   }
+  
+  // ---------- MIS MODALIDADES (lobby) ----------
+  @Get('mis-modalidades')
+  misModalidades(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.juegoService.misModalidades(usuario.id);
+  }
+
+
 }

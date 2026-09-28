@@ -640,4 +640,147 @@ export class JuegoService {
       pendientes: insigniasFormateadas.length - obtenidas,
     };
   }
+
+    // ============================================================
+  // MIS MODALIDADES (para el lobby del estudiante)
+  // ============================================================
+  async misModalidades(usuarioId: string) {
+    // 1. Cargar TODAS las modalidades disponibles
+    const modalidades = await this.misionesRepo.manager.query(
+      `
+      SELECT
+        id,
+        nombre,
+        descripcion,
+        orden_mundo AS ordenMundo
+      FROM modalidades
+      ORDER BY orden_mundo ASC
+      `,
+    );
+
+    // 2. Cargar progreso del usuario en cada modalidad (puede haber 0, 1 o N)
+    const progresos = await this.misionesRepo.manager.query(
+      `
+      SELECT
+        modalidad_id AS modalidadId,
+        xp_total AS xpTotal,
+        puntos_investigacion_total AS puntosInvestigacionTotal,
+        porcentaje,
+        nivel_actual_id AS nivelActualId,
+        tema_investigacion AS temaInvestigacion
+      FROM progreso_usuario
+      WHERE usuario_id = ?
+      `,
+      [usuarioId],
+    );
+
+    const progresoPorModalidad = new Map<number, any>();
+    for (const p of progresos) {
+      progresoPorModalidad.set(Number(p.modalidadId), p);
+    }
+
+    // 3. Para cada modalidad, contar niveles totales y completados
+    const resultado = [];
+
+    for (const m of modalidades) {
+      const progreso = progresoPorModalidad.get(Number(m.id));
+
+      // Total de niveles CON misiones principales
+      const totalNivelesArr = await this.misionesRepo.manager.query(
+        `
+        SELECT COUNT(*) AS total
+        FROM niveles n
+        WHERE n.modalidad_id = ?
+        AND EXISTS (
+          SELECT 1 FROM misiones mi
+          WHERE mi.nivel_id = n.id
+          AND mi.es_principal = TRUE
+        )
+        `,
+        [m.id],
+      );
+      const totalNiveles = Number(totalNivelesArr[0]?.total ?? 0);
+
+      // Niveles completados por el usuario en esta modalidad
+      const nivelesCompletadosArr = await this.misionesRepo.manager.query(
+        `
+        SELECT COUNT(*) AS completados
+        FROM niveles n
+        WHERE n.modalidad_id = ?
+        AND EXISTS (
+          SELECT 1 FROM misiones mi
+          WHERE mi.nivel_id = n.id
+          AND mi.es_principal = TRUE
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM misiones mi
+          WHERE mi.nivel_id = n.id
+          AND mi.es_principal = TRUE
+          AND NOT EXISTS (
+            SELECT 1 FROM intentos i
+            WHERE i.mision_id = mi.id
+            AND i.usuario_id = ?
+            AND i.resultado = 'correcto'
+            AND i.origen = 'nivel'
+          )
+        )
+        `,
+        [m.id, usuarioId],
+      );
+      const nivelesCompletados = Number(
+        nivelesCompletadosArr[0]?.completados ?? 0,
+      );
+
+      // Verificar si el usuario tiene al menos un intento en esta modalidad
+      const tieneIntentosArr = await this.misionesRepo.manager.query(
+        `
+        SELECT COUNT(*) AS total
+        FROM intentos i
+        JOIN misiones mi ON mi.id = i.mision_id
+        JOIN niveles n ON n.id = mi.nivel_id
+        WHERE i.usuario_id = ?
+        AND n.modalidad_id = ?
+        `,
+        [usuarioId, m.id],
+      );
+      const tieneIntentos =
+        Number(tieneIntentosArr[0]?.total ?? 0) > 0;
+
+      const tieneTema =
+        !!progreso?.temaInvestigacion && progreso.temaInvestigacion.length > 0;
+
+      // Estado de la modalidad
+      let estado: 'no_iniciada' | 'sin_tema' | 'en_progreso' | 'completada';
+      if (!progreso || (!tieneTema && !tieneIntentos)) {
+        estado = 'no_iniciada';
+      } else if (!tieneTema) {
+        estado = 'sin_tema';
+      } else if (totalNiveles > 0 && nivelesCompletados === totalNiveles) {
+        estado = 'completada';
+      } else {
+        estado = 'en_progreso';
+      }
+
+      resultado.push({
+        modalidadId: Number(m.id),
+        nombre: m.nombre,
+        descripcion: m.descripcion,
+        ordenMundo: Number(m.ordenMundo),
+        estado,
+        temaInvestigacion: progreso?.temaInvestigacion ?? null,
+        xpTotal: Number(progreso?.xpTotal ?? 0),
+        puntosInvestigacionTotal: Number(
+          progreso?.puntosInvestigacionTotal ?? 0,
+        ),
+        porcentaje: Number(progreso?.porcentaje ?? 0),
+        nivelActualId: progreso?.nivelActualId
+          ? String(progreso.nivelActualId)
+          : null,
+        totalNiveles,
+        nivelesCompletados,
+      });
+    }
+
+    return { modalidades: resultado };
+  }
 }
