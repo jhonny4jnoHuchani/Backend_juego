@@ -15,9 +15,13 @@ export default () => ({
   },
   ia: {
     geminiApiKey: process.env.GEMINI_API_KEY ?? '',
-    geminiModelPrimary: process.env.GEMINI_MODEL_PRIMARY ?? 'gemini-3.6-flash',
-    geminiModelFallback: process.env.GEMINI_MODEL_FALLBACK ?? 'gemini-3.7-flash',
+    geminiModelPrimary: process.env.GEMINI_MODEL_PRIMARY ?? 'gemini-2.0-flash-exp',
+    geminiModelFallback: process.env.GEMINI_MODEL_FALLBACK ?? 'gemini-1.5-flash',
     groqApiKey: process.env.GROQ_API_KEY ?? '',
     groqModel: process.env.GROQ_MODEL ?? 'llama-3.1-8b-instant',
+    
+    openaiApiKey: process.env.OPENAI_API_KEY ?? '',
+    openaiModelPrimary: process.env.OPENAI_MODEL_PRIMARY ?? 'gpt-4o-mini',
+    openaiModelPremium: process.env.OPENAI_MODEL_PREMIUM ?? 'gpt-4o',
   },
 });

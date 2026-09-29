@@ -3,6 +3,7 @@ import { AIProvider } from './interfaces/ai-provider.interface';
 import { EvaluacionCompleta } from './interfaces/evaluacion-resultado.interface';
 import { GeminiProvider } from './providers/gemini.provider';
 import { GroqProvider } from './providers/groq.provider';
+import { OpenAIProvider } from './providers/openai.provider';
 import { PromptBuilderService } from './prompt-builder/prompt-builder.service';
 import { JsonValidatorService } from './validators/json-validator.service';
 import { Mision } from '../misiones/entities/mision.entity';
@@ -17,8 +18,9 @@ export class IAEvaluatorService {
     private readonly validator: JsonValidatorService,
     private readonly gemini: GeminiProvider,
     private readonly groq: GroqProvider,
+    private readonly openai: OpenAIProvider,
   ) {
-    this.providers = [this.gemini, this.groq];
+    this.providers = [this.gemini, this.groq, this.openai];
   }
 
   // ============================================================
@@ -213,9 +215,11 @@ export class IAEvaluatorService {
   private obtenerModelo(proveedor: string): string {
     switch (proveedor) {
       case 'gemini':
-        return 'gemini-3.6-flash / 3.7-flash';
+        return 'gemini-flash';
       case 'groq':
-        return 'openai/gpt-oss-120b';
+        return 'gpt-oss-120b';
+      case 'openai':
+        return 'gpt-4o-mini';
       default:
         return 'desconocido';
     }
