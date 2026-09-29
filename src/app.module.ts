@@ -34,7 +34,7 @@ import { NotificacionesModule } from './modules/notificaciones/notificaciones.mo
         password: config.get<string>('database.password'),
         database: config.get<string>('database.database'),
         autoLoadEntities: true,
-        synchronize: false,
+        synchronize: true,
         logging: false,
       }),
     }),

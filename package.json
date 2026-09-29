@@ -20,10 +20,21 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "ts-node -r tsconfig-paths/register src/database/seed.ts",
+
+    "seed:articulo": "ts-node -r tsconfig-paths/register src/database/seed-articulo.ts",
+    "seed:articulo:misiones": "ts-node -r tsconfig-paths/register src/database/seed-articulo-misiones.ts",
+    "seed:articulo:teorias": "ts-node -r tsconfig-paths/register src/database/seed-teorias-articulo.ts",
+    
+    "seed:tesina": "ts-node -r tsconfig-paths/register src/database/seed-tesina.ts",
+    "seed:tesina:misiones": "ts-node -r tsconfig-paths/register src/database/seed-tesina-misiones.ts",
+    "seed:tesina:teorias": "ts-node -r tsconfig-paths/register src/database/seed-teorias-tesina.ts",
+
+    
     "seed:tesis": "ts-node -r tsconfig-paths/register src/database/seed-tesis.ts",
     "seed:tesis:misiones": "ts-node -r tsconfig-paths/register src/database/seed-tesis-misiones.ts",
     "seed:teorias": "ts-node -r tsconfig-paths/register src/database/seed-teorias.ts",
-    "seed:all": "npm run seed && npm run seed:tesis && npm run seed:tesis:misiones && npm run seed:teorias"
+
+    "seed:all": "npm run seed && npm run seed:tesis && npm run seed:tesis:misiones && npm run seed:teorias && npm run seed:articulo && npm run seed:articulo:misiones &&  npm run seed:articulo:teorias && npm run seed:tesina && npm run seed:tesina:misiones && npm run seed:tesina:teorias "
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
