@@ -4,6 +4,7 @@ import { PromptBuilderService } from './prompt-builder/prompt-builder.service';
 import { JsonValidatorService } from './validators/json-validator.service';
 import { GeminiProvider } from './providers/gemini.provider';
 import { GroqProvider } from './providers/groq.provider';
+import { OpenAIProvider } from './providers/openai.provider';
 
 @Module({
   providers: [
@@ -12,6 +13,7 @@ import { GroqProvider } from './providers/groq.provider';
     JsonValidatorService,
     GeminiProvider,
     GroqProvider,
+    OpenAIProvider,
   ],
   exports: [IAEvaluatorService],
 })
