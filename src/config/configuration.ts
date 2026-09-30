@@ -21,7 +21,7 @@ export default () => ({
     groqModel: process.env.GROQ_MODEL ?? 'llama-3.1-8b-instant',
     
     openaiApiKey: process.env.OPENAI_API_KEY ?? '',
-    openaiModelPrimary: process.env.OPENAI_MODEL_PRIMARY ?? 'gpt-4o-mini',
-    openaiModelPremium: process.env.OPENAI_MODEL_PREMIUM ?? 'gpt-4o',
+    openaiModelPrimary: process.env.OPENAI_MODEL_PRIMARY ?? 'gpt-4.1-nano',
+    openaiModelPremium: process.env.OPENAI_MODEL_PREMIUM ?? 'gpt-4o-mini',
   },
 });

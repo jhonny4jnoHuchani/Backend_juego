@@ -219,7 +219,7 @@ export class IAEvaluatorService {
       case 'groq':
         return 'gpt-oss-120b';
       case 'openai':
-        return 'gpt-4o-mini';
+        return 'gpt-4.1-nano';
       default:
         return 'desconocido';
     }
