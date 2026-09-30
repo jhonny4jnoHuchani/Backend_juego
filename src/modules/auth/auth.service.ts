@@ -45,7 +45,7 @@ export class AuthService {
       semestre: dto.semestre,
     });
 
-    return this.generarTokens(usuario.id, usuario.email, usuario.rol);
+    return this.generarTokens(usuario);
   }
 
   // ============================================================
@@ -62,7 +62,7 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    return this.generarTokens(usuario.id, usuario.email, usuario.rol);
+    return this.generarTokens(usuario);
   }
 
   // ============================================================
@@ -94,7 +94,7 @@ export class AuthService {
 
     const usuario = await this.usuariosService.buscarPorIdOrFail(payload.sub);
 
-    return this.generarTokens(usuario.id, usuario.email, usuario.rol);
+    return this.generarTokens(usuario);
   }
 
   // ============================================================
@@ -109,27 +109,39 @@ export class AuthService {
   // ============================================================
   // HELPERS
   // ============================================================
-    private async generarTokens(usuarioId: string, email: string, rol: string) {
-    const payload = { sub: usuarioId, email, rol };
+  private async generarTokens(usuario: any) {
+    const payload = {
+      sub: usuario.id,
+      email: usuario.email,
+      rol: usuario.rol,
+    };
 
     const accessToken = await this.jwtService.signAsync(payload, {
-        secret: this.config.get<string>('jwt.accessSecret'),
-        expiresIn: this.config.get<string>('jwt.accessExpiresIn') as any,
+      secret: this.config.get<string>('jwt.accessSecret'),
+      expiresIn: this.config.get<string>('jwt.accessExpiresIn') as any,
     });
 
     const refreshToken = await this.jwtService.signAsync(payload, {
-        secret: this.config.get<string>('jwt.refreshSecret'),
-        expiresIn: this.config.get<string>('jwt.refreshExpiresIn') as any,
+      secret: this.config.get<string>('jwt.refreshSecret'),
+      expiresIn: this.config.get<string>('jwt.refreshExpiresIn') as any,
     });
 
-    await this.guardarRefreshToken(usuarioId, refreshToken);
+    await this.guardarRefreshToken(usuario.id, refreshToken);
 
     return {
-        accessToken,
-        refreshToken,
-        usuario: { id: usuarioId, email, rol },
+      accessToken,
+      refreshToken,
+      usuario: {
+        id: usuario.id,
+        email: usuario.email,
+        rol: usuario.rol,
+        nombre: usuario.nombre,
+        universidad: usuario.universidad,
+        carrera: usuario.carrera,
+        semestre: usuario.semestre,
+      },
     };
-    }
+  }
 
   private async guardarRefreshToken(usuarioId: string, refreshTokenPlano: string) {
     const tokenHash = this.hashToken(refreshTokenPlano);
