@@ -36,14 +36,14 @@ async function bootstrap() {
     for (const nivel of niveles) nivelesPorNumero.set(nivel.numero, nivel);
 
     const teoriasPorNivel: Record<number, string> = {
-      1: 'El problema de la tesina debe ser específico, relevante y viable. Delimita qué estudiarás, a quiénes, dónde y cuándo; luego formula una pregunta que pueda responderse con datos.',
-      2: 'La pregunta guía todo el trabajo. El objetivo general expresa el resultado esperado y los objetivos específicos lo dividen en acciones ordenadas, observables y alcanzables.',
-      3: 'El marco teórico no es una colección de definiciones. Selecciona antecedentes pertinentes, compara sus aportes y construye un argumento que explique los conceptos, variables o categorías del estudio.',
-      4: 'Operacionalizar significa pasar de conceptos abstractos a dimensiones e indicadores observables. La metodología debe ser coherente con la pregunta, el enfoque, el diseño, la población y la muestra.',
-      5: 'Un instrumento válido recoge información relacionada con los indicadores y se aplica mediante un procedimiento definido. La tesina también debe proteger consentimiento, confidencialidad y trato digno de los participantes.',
-      6: 'El análisis organiza la evidencia para responder cada objetivo. Presenta resultados separados de la interpretación, usa tablas o categorías cuando ayuden y no afirma más de lo que permiten los datos.',
-      7: 'Las conclusiones sintetizan respuestas a los objetivos, reconocen límites y pueden proponer recomendaciones justificadas. Toda fuente citada debe aparecer en referencias y seguir APA 7.',
-      8: 'Una defensa eficaz cuenta una historia académica coherente: problema, objetivos, método, resultados, conclusiones y aporte. Responde al tribunal con precisión, reconoce límites y sustenta sus decisiones.',
+      1: 'El problema de investigación de la tesina debe ser específico, pertinente y viable. Delimite el objeto de estudio, la población, el contexto y el periodo; posteriormente, formule una pregunta que pueda responderse mediante evidencia.',
+      2: 'La pregunta de investigación orienta el desarrollo del trabajo. El objetivo general expresa el propósito central, mientras que los objetivos específicos lo desglosan en acciones secuenciales, observables y alcanzables.',
+      3: 'El marco teórico debe constituir una argumentación fundamentada, no una recopilación de definiciones. Seleccione antecedentes pertinentes, compare sus aportes y articule los conceptos, las variables o las categorías que explican el objeto de estudio.',
+      4: 'La operacionalización traduce conceptos abstractos en dimensiones e indicadores observables. La metodología debe mantener coherencia con la pregunta de investigación, el enfoque, el diseño, la población y la muestra.',
+      5: 'Un instrumento adecuado recopila información relacionada con los indicadores y se aplica mediante un procedimiento definido. La tesina debe contemplar el consentimiento informado, la confidencialidad y el trato respetuoso de las personas participantes.',
+      6: 'El análisis organiza la evidencia para responder a cada objetivo. Presente los resultados de manera diferenciada de su interpretación, utilice tablas o categorías cuando contribuyan a la comprensión y limite las conclusiones a lo que los datos permiten sostener.',
+      7: 'Las conclusiones sintetizan las respuestas a los objetivos, reconocen las limitaciones y pueden incluir recomendaciones debidamente fundamentadas. Toda fuente citada debe figurar en la lista de referencias, conforme a las normas de APA 7.',
+      8: 'Una defensa académica eficaz expone de manera coherente el problema, los objetivos, el método, los resultados, las conclusiones y la contribución del estudio. Responda al tribunal con precisión, reconozca las limitaciones y fundamente las decisiones metodológicas.',
     };
 
     let actualizadas = 0;

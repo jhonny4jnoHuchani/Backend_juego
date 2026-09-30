@@ -42,58 +42,58 @@ async function bootstrap() {
     const nivelesData = [
       {
         numero: 1,
-        titulo: 'Delimita el tema y el problema',
+        titulo: 'Delimitación del tema y del problema de investigación',
         descripcion:
-          'Convierte una idea amplia en un problema de investigación concreto, viable y contextualizado.',
+          'Transforme una idea general en un problema de investigación específico, viable y debidamente contextualizado.',
         tipo: 'estandar' as const,
       },
       {
         numero: 2,
-        titulo: 'Formula preguntas y objetivos',
+        titulo: 'Formulación de preguntas y objetivos',
         descripcion:
-          'Alinea la pregunta central, el objetivo general y los objetivos específicos de la tesina.',
+          'Establezca la coherencia entre la pregunta central, el objetivo general y los objetivos específicos de la tesina.',
         tipo: 'estandar' as const,
       },
       {
         numero: 3,
-        titulo: 'Construye el sustento teórico',
+        titulo: 'Construcción de la fundamentación teórica',
         descripcion:
-          'Selecciona antecedentes, conceptos, teorías y citas que fundamenten el estudio.',
+          'Seleccione antecedentes, conceptos, teorías y fuentes bibliográficas que sustenten el estudio.',
         tipo: 'estandar' as const,
       },
       {
         numero: 4,
-        titulo: 'Operacionaliza y diseña la metodología',
+        titulo: 'Operacionalización y diseño metodológico',
         descripcion:
-          'Define variables o categorías, dimensiones, indicadores, enfoque, diseño y muestra.',
+          'Defina las variables o categorías, sus dimensiones e indicadores, así como el enfoque, el diseño y la muestra.',
         tipo: 'estandar' as const,
       },
       {
         numero: 5,
-        titulo: 'Prepara la recolección de datos',
+        titulo: 'Planificación de la recolección de datos',
         descripcion:
-          'Diseña instrumentos, procedimiento, validación y resguardos éticos.',
+          'Diseñe los instrumentos y el procedimiento de recolección, e incluya su validación y las medidas de protección ética.',
         tipo: 'estandar' as const,
       },
       {
         numero: 6,
-        titulo: 'Analiza y presenta resultados',
+        titulo: 'Análisis y presentación de resultados',
         descripcion:
-          'Organiza la evidencia y responde a los objetivos con un análisis claro y verificable.',
+          'Organice la evidencia y responda a los objetivos mediante un análisis claro, pertinente y verificable.',
         tipo: 'estandar' as const,
       },
       {
         numero: 7,
-        titulo: 'Redacta conclusiones y referencias',
+        titulo: 'Elaboración de conclusiones y referencias',
         descripcion:
-          'Cierra la tesina con conclusiones, recomendaciones, limitaciones y referencias en APA 7.',
+          'Concluya la tesina con conclusiones y recomendaciones fundamentadas, reconozca sus limitaciones y presente las referencias conforme a APA 7.',
         tipo: 'estandar' as const,
       },
       {
         numero: 8,
-        titulo: 'Defiende tu tesina',
+        titulo: 'Presentación y defensa de la tesina',
         descripcion:
-          'Presenta el proceso completo y responde preguntas del tribunal con argumentos académicos.',
+          'Exponga el proceso de investigación y responda las preguntas del tribunal con argumentos académicos y evidencia pertinente.',
         tipo: 'boss' as const,
       },
     ];

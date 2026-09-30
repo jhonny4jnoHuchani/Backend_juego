@@ -40,14 +40,14 @@ async function bootstrap() {
     }
 
     const teoriasPorNivel: Record<number, string> = {
-      1: 'Un artículo necesita un tema acotado y una contribución identificable. Delimita fenómeno, población, contexto y periodo; después expresa qué conocimiento nuevo aportará el manuscrito.',
-      2: 'La introducción avanza de lo general a lo específico: presenta el problema con fuentes, explica el vacío de conocimiento, formula la pregunta y cierra con el objetivo del artículo.',
-      3: 'El sustento científico conecta antecedentes, conceptos y variables o categorías. Cada afirmación relevante debe tener una fuente confiable y la hipótesis solo se formula cuando el enfoque y el diseño permiten comprobarla.',
-      4: 'La metodología debe permitir que otra persona comprenda y replique el estudio. Justifica enfoque, diseño, participantes, muestra, instrumentos, procedimiento y forma de análisis.',
-      5: 'Los resultados muestran evidencia, no opiniones. Organiza tablas, figuras o categorías según los objetivos, informa los datos con precisión y evita explicar causas o comparar literatura dentro de esta sección.',
-      6: 'La discusión interpreta los resultados, los compara con antecedentes y reconoce alcances y limitaciones. Las conclusiones responden a los objetivos y no presentan afirmaciones que los datos no sostienen.',
-      7: 'El manuscrito debe ser localizable, verificable y ético. El resumen sintetiza objetivo, método, resultados y conclusión; las palabras clave facilitan la indexación; las citas y referencias siguen APA 7 y se declara la originalidad.',
-      8: 'Responder a revisores es parte del proceso científico. Contesta cada observación con respeto, indica el cambio realizado y señala la página o sección modificada; si discrepas, argumenta con evidencia y no de forma personal.',
+      1: 'Un artículo científico requiere un tema delimitado y una contribución claramente identificable. Precise el fenómeno, la población, el contexto y el periodo de estudio; luego, establezca el conocimiento que aportará el manuscrito.',
+      2: 'La introducción debe avanzar de lo general a lo específico: contextualice el problema mediante fuentes pertinentes, identifique la brecha de conocimiento, formule la pregunta de investigación y presente el objetivo del artículo.',
+      3: 'La fundamentación científica articula antecedentes, conceptos y variables o categorías. Sustente cada afirmación relevante con fuentes confiables y formule hipótesis únicamente cuando el enfoque y el diseño permitan someterlas a comprobación.',
+      4: 'La metodología debe ofrecer información suficiente para que otras personas comprendan y, cuando corresponda, repliquen el estudio. Justifique el enfoque, el diseño, los participantes, la muestra, los instrumentos, el procedimiento y el método de análisis.',
+      5: 'La sección de resultados debe presentar evidencia empírica de manera objetiva. Organice tablas, figuras o categorías de acuerdo con los objetivos, comunique los datos con precisión y reserve la explicación de causas y la comparación con la literatura para la discusión.',
+      6: 'La discusión interpreta los resultados a la luz de los antecedentes y expone los alcances y las limitaciones del estudio. Las conclusiones deben responder a los objetivos y evitar afirmaciones que no estén respaldadas por los datos.',
+      7: 'El manuscrito debe cumplir criterios de localización, verificabilidad e integridad ética. El resumen sintetiza el objetivo, el método, los resultados y la conclusión; las palabras clave favorecen la indexación; las citas y referencias deben ajustarse a APA 7, y la originalidad debe declararse conforme a las normas editoriales.',
+      8: 'La respuesta a los evaluadores forma parte del proceso de publicación científica. Atienda cada observación con respeto, precise los cambios realizados e indique la página o sección correspondiente. Si decide no incorporar una sugerencia, fundamente la decisión con evidencia y argumentos académicos.',
     };
 
     console.log('📝 Actualizando teorías de las misiones...\n');

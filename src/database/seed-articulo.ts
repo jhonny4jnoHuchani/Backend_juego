@@ -46,58 +46,58 @@ async function bootstrap() {
     const nivelesData = [
       {
         numero: 1,
-        titulo: 'Delimita el tema y la contribución',
+        titulo: 'Delimitación del tema y de la contribución',
         descripcion:
-          'Convierte una idea amplia en un tema de artículo concreto, viable y con una contribución clara.',
+          'Delimite una idea general hasta definir un tema de artículo específico, viable y con una contribución claramente identificable.',
         tipo: 'estandar' as const,
       },
       {
         numero: 2,
-        titulo: 'Construye la introducción',
+        titulo: 'Estructuración de la introducción',
         descripcion:
-          'Presenta el problema, la pregunta, el objetivo y el vacío de conocimiento que justifica el artículo.',
+          'Exponga el problema, la pregunta de investigación, el objetivo y la brecha de conocimiento que fundamentan el artículo.',
         tipo: 'estandar' as const,
       },
       {
         numero: 3,
-        titulo: 'Sustenta el argumento científico',
+        titulo: 'Fundamentación del argumento científico',
         descripcion:
-          'Organiza antecedentes, conceptos, variables o categorías e hipótesis cuando correspondan.',
+          'Integre los antecedentes, conceptos, variables o categorías y, cuando corresponda, las hipótesis que sustentan el estudio.',
         tipo: 'estandar' as const,
       },
       {
         numero: 4,
-        titulo: 'Diseña la metodología',
+        titulo: 'Diseño de la metodología',
         descripcion:
-          'Explica el enfoque, diseño, población, muestra, técnicas, instrumentos y procedimiento del estudio.',
+          'Describa el enfoque, el diseño, la población, la muestra, las técnicas, los instrumentos y el procedimiento de investigación.',
         tipo: 'estandar' as const,
       },
       {
         numero: 5,
-        titulo: 'Presenta resultados verificables',
+        titulo: 'Presentación de resultados verificables',
         descripcion:
-          'Ordena los hallazgos y presenta evidencia directamente relacionada con los objetivos.',
+          'Organice los hallazgos y presente evidencia pertinente, verificable y vinculada con los objetivos del estudio.',
         tipo: 'estandar' as const,
       },
       {
         numero: 6,
-        titulo: 'Discute y concluye',
+        titulo: 'Discusión de resultados y conclusiones',
         descripcion:
-          'Interpreta los hallazgos, los contrasta con la literatura y redacta conclusiones sin exagerar.',
+          'Interprete los hallazgos, contrástelos con la literatura pertinente y formule conclusiones proporcionales a la evidencia.',
         tipo: 'estandar' as const,
       },
       {
         numero: 7,
-        titulo: 'Prepara el manuscrito para publicación',
+        titulo: 'Preparación del manuscrito para publicación',
         descripcion:
-          'Completa resumen, palabras clave, citas, referencias, ética, originalidad y formato editorial.',
+          'Verifique el resumen, las palabras clave, las citas, las referencias, los aspectos éticos, la originalidad y los requisitos editoriales.',
         tipo: 'estandar' as const,
       },
       {
         numero: 8,
-        titulo: 'Responde a la revisión editorial',
+        titulo: 'Respuesta a la evaluación editorial',
         descripcion:
-          'Revisa el manuscrito y responde con argumentos técnicos a las observaciones de los revisores.',
+          'Revise el manuscrito y responda a las observaciones de los evaluadores con argumentos técnicos, precisos y fundamentados.',
         tipo: 'boss' as const,
       },
     ];
