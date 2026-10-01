@@ -19,6 +19,8 @@ import { ResultadoIntento } from '../../common/enums/resultado-intento.enum';
 import { TextosGeneradosService } from './textos-generados/textos-generados.service';
 
 import { RecomendacionesService } from '../recomendaciones/recomendaciones.service';
+import { UsuariosService } from '../usuarios/usuarios.service';
+
 
 @Injectable()
 export class JuegoService {
@@ -34,6 +36,7 @@ export class JuegoService {
     private readonly insigniasService: InsigniasService,
     private readonly recomendacionesService: RecomendacionesService,
     private readonly textosGeneradosService: TextosGeneradosService,
+    private readonly usuariosService: UsuariosService,
   ) {}
 
   async responderMision(
@@ -592,28 +595,126 @@ export class JuegoService {
     modalidadId: number,
     tema: string,
   ) {
-    // Validar que la modalidad existe
-    const modalidadExiste = await this.misionesRepo.manager.query(
-      `SELECT id FROM modalidades WHERE id = ?`,
+    // ---------- 1. Limpieza básica ----------
+    const temaLimpio = tema?.trim() ?? '';
+
+    if (temaLimpio.length < 20) {
+      throw new BadRequestException(
+        'El tema debe tener al menos 20 caracteres.',
+      );
+    }
+
+    if (temaLimpio.length > 300) {
+      throw new BadRequestException(
+        'El tema no debe superar los 300 caracteres.',
+      );
+    }
+
+    if (/(.)\1{5,}/.test(temaLimpio)) {
+      throw new BadRequestException(
+        'El tema contiene caracteres repetidos de forma extraña.',
+      );
+    }
+
+    const palabras = temaLimpio.split(/\s+/).filter((p) => p.length > 2);
+    if (palabras.length < 4) {
+      throw new BadRequestException(
+        'El tema debe contener al menos 4 palabras significativas.',
+      );
+    }
+
+    const palabrasRaras = palabras.filter(
+      (p) => !/[aeiouáéíóú]/i.test(p) || p.length > 20,
+    );
+    if (palabrasRaras.length / palabras.length > 0.5) {
+      throw new BadRequestException(
+        'El tema parece no ser un texto real. Escribe un tema de investigación válido.',
+      );
+    }
+
+    // ---------- 2. Validar que la modalidad existe ----------
+    const modalidadArr = await this.misionesRepo.manager.query(
+      `SELECT id, nombre, descripcion FROM modalidades WHERE id = ?`,
       [modalidadId],
     );
 
-    if (!modalidadExiste || modalidadExiste.length === 0) {
+    if (!modalidadArr || modalidadArr.length === 0) {
       throw new NotFoundException('Modalidad no encontrada');
     }
 
+    const modalidad = modalidadArr[0];
+
+    // ---------- 3. Cargar datos del usuario ----------
+    const usuario = await this.usuariosService.buscarPorIdOrFail(usuarioId);
+
+    // ---------- 4. Validar con IA ----------
+    const validacion = await this.iaEvaluator.validarTema(
+      temaLimpio,
+      {
+        universidad: usuario.universidad,
+        carrera: usuario.carrera,
+        semestre: usuario.semestre,
+      },
+      {
+        nombre: modalidad.nombre,
+        descripcion: modalidad.descripcion,
+      },
+    );
+
+    // ---------- 4.5. Resolver modalidad sugerida (id + nombre) ----------
+    let modalidadSugerida: { id: number; nombre: string } | null = null;
+    if (
+      validacion.modalidadSugerida &&
+      validacion.modalidadSugerida !== modalidad.nombre
+    ) {
+      const arr = await this.misionesRepo.manager.query(
+        `SELECT id, nombre FROM modalidades WHERE nombre = ?`,
+        [validacion.modalidadSugerida],
+      );
+      if (arr?.length) {
+        modalidadSugerida = { id: Number(arr[0].id), nombre: arr[0].nombre };
+      }
+    }
+
+    // ---------- 5. Si no es válido → 400 con detalles ----------
+    if (!validacion.valido) {
+      throw new BadRequestException({
+        statusCode: 400,
+        message: 'El tema de investigación no es válido',
+        razon: validacion.razon,
+        sugerencia: validacion.sugerencia,
+        explicacion: validacion.explicacion,
+        elementosFaltantes: validacion.elementosFaltantes,
+        elementosPresentes: validacion.elementosPresentes,
+        compatibilidad: validacion.compatibilidad,
+        modalidadSugerida,
+      });
+    }
+
+    // ---------- 6. Guardar ----------
     const progreso = await this.progresoService.establecerTema(
       usuarioId,
       modalidadId,
-      tema,
+      temaLimpio,
     );
 
     return {
       mensaje: 'Tema de investigación guardado correctamente',
       modalidadId,
       temaInvestigacion: progreso.temaInvestigacion,
+      validacion: {
+        valido: true,
+        elementos: validacion.elementos,
+        razon: validacion.razon,
+        compatibilidad: validacion.compatibilidad,
+        advertenciaCarrera: validacion.advertenciaCarrera,
+        sugerenciaCarrera: validacion.sugerenciaCarrera,
+      },
     };
   }
+
+
+
 
    // ============================================================
   // OBTENER TEXTO GENERADO (para misiones marcar_errores)

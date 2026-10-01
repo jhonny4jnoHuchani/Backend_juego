@@ -30,6 +30,7 @@ import { JuegoController } from './juego.controller';
 
 // notificaciones
 import { NotificacionesModule } from '../notificaciones/notificaciones.module';
+import { UsuariosModule } from '../usuarios/usuarios.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
     RecomendacionesModule,
     TextosGeneradosModule,   // ← NUEVO
     NotificacionesModule,
+    UsuariosModule,
   ],
   controllers: [JuegoController],
   providers: [
