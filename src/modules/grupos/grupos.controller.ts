@@ -24,7 +24,7 @@ export class GruposController {
   constructor(private readonly gruposService: GruposService) {}
 
   // ============================================================
-  // DOCENTE
+  // RUTAS ESPECÍFICAS (van PRIMERO, sin :id)
   // ============================================================
 
   @Roles(Rol.DOCENTE)
@@ -38,6 +38,31 @@ export class GruposController {
   listarDelDocente(@CurrentUser() usuario: UsuarioAutenticado) {
     return this.gruposService.listarDelDocente(usuario.id);
   }
+
+  @Roles(Rol.ESTUDIANTE)
+  @Get('mis-grupos-como-estudiante')
+  listarDelEstudiante(@CurrentUser() usuario: UsuarioAutenticado) {
+    return this.gruposService.listarDelEstudiante(usuario.id);
+  }
+
+  @Roles(Rol.ESTUDIANTE)
+  @Post('unirse')
+  unirse(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body() dto: UnirseGrupoDto,
+  ) {
+    return this.gruposService.unirseConCodigo(usuario.id, dto.codigo);
+  }
+
+  @Roles(Rol.ESTUDIANTE)
+  @Delete('salir/:id')
+  salir(@CurrentUser() usuario: UsuarioAutenticado, @Param('id') id: string) {
+    return this.gruposService.salirDelGrupo(usuario.id, id);
+  }
+
+  // ============================================================
+  // RUTAS DINÁMICAS (van DESPUÉS, con :id)
+  // ============================================================
 
   @Roles(Rol.DOCENTE)
   @Get(':id')
@@ -65,30 +90,5 @@ export class GruposController {
   @Delete(':id')
   eliminar(@CurrentUser() usuario: UsuarioAutenticado, @Param('id') id: string) {
     return this.gruposService.eliminar(usuario.id, id);
-  }
-
-  // ============================================================
-  // ESTUDIANTE
-  // ============================================================
-
-  @Roles(Rol.ESTUDIANTE)
-  @Post('unirse')
-  unirse(
-    @CurrentUser() usuario: UsuarioAutenticado,
-    @Body() dto: UnirseGrupoDto,
-  ) {
-    return this.gruposService.unirseConCodigo(usuario.id, dto.codigo);
-  }
-
-  @Roles(Rol.ESTUDIANTE)
-  @Get('mis-grupos-como-estudiante')
-  listarDelEstudiante(@CurrentUser() usuario: UsuarioAutenticado) {
-    return this.gruposService.listarDelEstudiante(usuario.id);
-  }
-
-  @Roles(Rol.ESTUDIANTE)
-  @Delete('salir/:id')
-  salir(@CurrentUser() usuario: UsuarioAutenticado, @Param('id') id: string) {
-    return this.gruposService.salirDelGrupo(usuario.id, id);
   }
 }

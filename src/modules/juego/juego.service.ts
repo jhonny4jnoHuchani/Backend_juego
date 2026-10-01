@@ -51,14 +51,35 @@ export class JuegoService {
       throw new NotFoundException('Misión no encontrada');
     }
 
+
+
     const origen = dto.origen ?? OrigenIntento.NIVEL;
 
-        // Verificar si la misión YA estaba completada ANTES de este intento
+    // ---------- 1.5. Validar que el nivel esté desbloqueado ----------
+    // Solo aplica al flujo normal ('nivel'). Las recomendaciones docentes
+    // y el Boss se saltan esta validación.
+    if (origen === OrigenIntento.NIVEL) {
+      const desbloqueado = await this.verificarNivelDesbloqueado(
+        usuarioId,
+        mision.nivel.id,
+        mision.nivel.modalidadId,
+      );
+
+      if (!desbloqueado) {
+        throw new ForbiddenException(
+          'Misión bloqueada. Completa los niveles anteriores para acceder.',
+        );
+      }
+    }
+
+    // Verificar si la misión YA estaba completada ANTES de este intento
     const yaCompletadaAntes = await this.intentosService.yaCompletada(
       usuarioId,
       misionId,
       OrigenIntento.NIVEL,
     );
+
+
 
     // ---------- 2. Calcular vidas restantes ----------
     const incorrectosRecientes = await this.intentosService.contarIncorrectosRecientes(
@@ -782,5 +803,79 @@ export class JuegoService {
     }
 
     return { modalidades: resultado };
+  }
+
+    // ============================================================
+  // VALIDACIÓN: NIVEL DESBLOQUEADO
+  // ============================================================
+  /**
+   * Verifica si el nivel indicado está desbloqueado para el usuario.
+   *
+   * Reglas:
+   * - El primer nivel de la modalidad (menor `orden`) siempre está desbloqueado.
+   * - Un nivel N está desbloqueado si TODOS los niveles anteriores
+   *   (orden < orden de N) tienen sus misiones principales completadas
+   *   con resultado='correcto' y origen='nivel'.
+   */
+  private async verificarNivelDesbloqueado(
+    usuarioId: string,
+    nivelId: string,
+    modalidadId: number,
+  ): Promise<boolean> {
+    const niveles: Array<{ id: string; orden: number }> =
+      await this.misionesRepo.manager.query(
+        `
+        SELECT id, orden
+        FROM niveles
+        WHERE modalidad_id = ?
+        ORDER BY orden ASC
+        `,
+        [modalidadId],
+      );
+
+    if (niveles.length === 0) {
+      return true;
+    }
+
+    const idxActual = niveles.findIndex(
+      (n) => String(n.id) === String(nivelId),
+    );
+
+    if (idxActual === -1) {
+      return false;
+    }
+
+    if (idxActual === 0) {
+      return true;
+    }
+
+    const nivelesAnteriores = niveles.slice(0, idxActual);
+    const idsAnteriores = nivelesAnteriores.map((n) => String(n.id));
+
+    if (idsAnteriores.length === 0) {
+      return true;
+    }
+
+    const placeholders = idsAnteriores.map(() => '?').join(',');
+    const pendientesArr = await this.misionesRepo.manager.query(
+      `
+      SELECT COUNT(*) AS pendientes
+      FROM misiones m
+      WHERE m.nivel_id IN (${placeholders})
+        AND m.es_principal = TRUE
+        AND NOT EXISTS (
+          SELECT 1 FROM intentos i
+          WHERE i.mision_id = m.id
+            AND i.usuario_id = ?
+            AND i.resultado = 'correcto'
+            AND i.origen = 'nivel'
+        )
+      `,
+      [...idsAnteriores, usuarioId],
+    );
+
+    const pendientes = Number(pendientesArr[0]?.pendientes ?? 0);
+
+    return pendientes === 0;
   }
 }
