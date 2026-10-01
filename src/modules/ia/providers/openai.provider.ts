@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { AIProvider } from '../interfaces/ai-provider.interface';
+import { LoggerCostosService } from './logger-costos.service';
 
 @Injectable()
 export class OpenAIProvider implements AIProvider {
@@ -12,7 +13,14 @@ export class OpenAIProvider implements AIProvider {
   private readonly modeloPrimario: string;
   private readonly modeloPremium: string;
 
-  constructor(private readonly config: ConfigService) {
+  // Precios de gpt-4.1-nano (por 1M tokens)
+  private readonly PRECIO_INPUT_POR_MILLON = 0.10;
+  private readonly PRECIO_OUTPUT_POR_MILLON = 0.40;
+
+  constructor(
+    private readonly config: ConfigService,
+    private readonly loggerCostos: LoggerCostosService,
+  ) {
     const apiKey = this.config.get<string>('ia.openaiApiKey') ?? '';
 
     if (!apiKey) {
@@ -25,9 +33,9 @@ export class OpenAIProvider implements AIProvider {
     }
 
     this.modeloPrimario =
-      this.config.get<string>('ia.openaiModelPrimary') ?? 'gpt-4o-mini';
+      this.config.get<string>('ia.openaiModelPrimary') ?? 'gpt-4.1-nano';
     this.modeloPremium =
-      this.config.get<string>('ia.openaiModelPremium') ?? 'gpt-4o';
+      this.config.get<string>('ia.openaiModelPremium') ?? 'gpt-4o-mini';
   }
 
   async evaluar(prompt: string): Promise<any> {
@@ -55,6 +63,34 @@ export class OpenAIProvider implements AIProvider {
 
     const respuesta = await Promise.race([llamada, timeoutPromise]);
     const texto = respuesta.choices[0]?.message?.content ?? '';
+
+    // ---------- LOG DE COSTO ----------
+    const usage = (respuesta as any).usage;
+    if (usage) {
+      const inputTokens = usage.prompt_tokens ?? 0;
+      const outputTokens = usage.completion_tokens ?? 0;
+
+      const costoInput =
+        (inputTokens / 1_000_000) * this.PRECIO_INPUT_POR_MILLON;
+      const costoOutput =
+        (outputTokens / 1_000_000) * this.PRECIO_OUTPUT_POR_MILLON;
+      const costoTotal = costoInput + costoOutput;
+
+      this.logger.log(
+        `💰 OpenAI (${this.modeloPrimario}) — ` +
+          `in: ${inputTokens} tok | out: ${outputTokens} tok | ` +
+          `costo: $${costoTotal.toFixed(6)} USD`,
+      );
+
+      this.loggerCostos.registrar({
+        modelo: this.modeloPrimario,
+        inputTokens,
+        outputTokens,
+        costoUsd: costoTotal,
+        contexto: 'evaluacion',
+      });
+    }
+    // ---------- FIN LOG DE COSTO ----------
 
     const json = this.extractJson(texto);
 

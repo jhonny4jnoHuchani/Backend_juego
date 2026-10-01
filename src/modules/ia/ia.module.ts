@@ -5,6 +5,7 @@ import { JsonValidatorService } from './validators/json-validator.service';
 import { GeminiProvider } from './providers/gemini.provider';
 import { GroqProvider } from './providers/groq.provider';
 import { OpenAIProvider } from './providers/openai.provider';
+import { LoggerCostosService } from './providers/logger-costos.service';
 
 @Module({
   providers: [
@@ -14,6 +15,7 @@ import { OpenAIProvider } from './providers/openai.provider';
     GeminiProvider,
     GroqProvider,
     OpenAIProvider,
+    LoggerCostosService,
   ],
   exports: [IAEvaluatorService],
 })
